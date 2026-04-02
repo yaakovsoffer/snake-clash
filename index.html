@@ -245,65 +245,92 @@ html, body {
     height: 100%;
 }
 
-#joystickArea {
+/* Touch target indicator */
+#touchTarget {
     display: none;
     position: fixed;
-    bottom: 30px;
-    left: 30px;
-    width: 180px;
-    height: 180px;
-    z-index: 80;
-    pointer-events: auto;
-}
-
-#joystickBase {
-    position: absolute;
-    width: 180px;
-    height: 180px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.1);
-    border: 3px solid rgba(255,255,255,0.25);
-    backdrop-filter: blur(4px);
-}
-
-#joystickThumb {
-    position: absolute;
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.35);
     border: 3px solid rgba(255,255,255,0.5);
-    top: 55px;
-    left: 55px;
-    transition: none;
+    background: rgba(255,255,255,0.1);
+    pointer-events: none;
+    z-index: 75;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.2s;
 }
 
-#boostBtn {
+#touchTarget.active {
+    border-color: rgba(0,255,136,0.7);
+    background: rgba(0,255,136,0.15);
+    box-shadow: 0 0 20px rgba(0,255,136,0.3);
+}
+
+#touchTarget .target-dot {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.8);
+    transform: translate(-50%, -50%);
+}
+
+#touchTrail {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 74;
+}
+
+/* Boost zone - bottom right corner */
+#boostZone {
     display: none;
     position: fixed;
-    bottom: 50px;
-    right: 40px;
-    width: 110px;
-    height: 110px;
+    bottom: 20px;
+    right: 20px;
+    width: 100px;
+    height: 100px;
     border-radius: 50%;
-    background: rgba(255,107,53,0.5);
-    border: 4px solid rgba(255,107,53,0.8);
-    backdrop-filter: blur(4px);
+    background: rgba(255,107,53,0.2);
+    border: 3px solid rgba(255,107,53,0.4);
     z-index: 80;
     font-family: 'Bungee', cursive;
-    font-size: 16px;
-    color: #fff;
-    text-shadow: 1px 1px 0 rgba(0,0,0,0.5);
-    cursor: pointer;
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
     pointer-events: auto;
     -webkit-tap-highlight-color: transparent;
 }
 
-#boostBtn.active {
-    background: rgba(255,200,50,0.7);
+#boostZone.active {
+    background: rgba(255,200,50,0.4);
     border-color: #ffe44d;
-    transform: scale(0.92);
-    box-shadow: 0 0 30px rgba(255,200,50,0.5);
+    color: #fff;
+    box-shadow: 0 0 25px rgba(255,200,50,0.4);
+}
+
+/* Touch hint overlay */
+#touchHint {
+    display: none;
+    position: fixed;
+    bottom: 140px;
+    left: 0; right: 0;
+    text-align: center;
+    font-family: 'Bungee', cursive;
+    font-size: 15px;
+    color: rgba(255,255,255,0.5);
+    z-index: 80;
+    pointer-events: none;
+    animation: hintFade 4s ease forwards;
+}
+
+@keyframes hintFade {
+    0% { opacity: 1; }
+    70% { opacity: 1; }
+    100% { opacity: 0; display: none; }
 }
 
 /* Touch-friendly button sizes */
@@ -600,12 +627,10 @@ html, body {
 <canvas id="minimap" width="160" height="160" style="display:none"></canvas>
 
 <!-- Touch Controls -->
-<div id="joystickArea">
-    <div id="joystickBase">
-        <div id="joystickThumb"></div>
-    </div>
-</div>
-<button id="boostBtn">BOOST</button>
+<div id="touchTarget"><div class="target-dot"></div></div>
+<canvas id="touchTrail"></canvas>
+<div id="boostZone">BOOST</div>
+<div id="touchHint">Drag anywhere to steer &bull; Two fingers to boost</div>
 
 <div id="levelUpBanner">RANK UP!</div>
 
@@ -668,6 +693,8 @@ let W, H;
 function resize() {
     W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
+    const tc = document.getElementById('touchTrail');
+    if (tc) { tc.width = W; tc.height = H; }
 }
 resize();
 window.addEventListener('resize', resize);
@@ -701,7 +728,6 @@ const RAINBOW_DURATION = 480; // ~8 seconds at 60fps
 const keys = { up: false, down: false, left: false, right: false, space: false };
 let boosting = false;
 let isTouchDevice = false;
-let touchAngle = null; // null = no touch input
 let touchActive = false;
 
 // Detect touch
@@ -716,8 +742,21 @@ detectTouch();
 // Show/hide touch controls
 function showTouchControls(show) {
     if (!isTouchDevice) return;
-    document.getElementById('joystickArea').style.display = show ? 'block' : 'none';
-    document.getElementById('boostBtn').style.display = show ? 'flex' : 'none';
+    document.getElementById('boostZone').style.display = show ? 'flex' : 'none';
+    if (show) {
+        const hint = document.getElementById('touchHint');
+        hint.style.display = 'block';
+        hint.style.animation = 'none';
+        hint.offsetHeight;
+        hint.style.animation = 'hintFade 4s ease forwards';
+        // Setup trail canvas
+        const tc = document.getElementById('touchTrail');
+        tc.width = window.innerWidth;
+        tc.height = window.innerHeight;
+    } else {
+        document.getElementById('touchHint').style.display = 'none';
+        document.getElementById('touchTarget').style.display = 'none';
+    }
 }
 
 // Keyboard input
@@ -742,110 +781,213 @@ canvas.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clien
 canvas.addEventListener('mousedown', () => boosting = true);
 canvas.addEventListener('mouseup', () => boosting = false);
 
-// ===== VIRTUAL JOYSTICK =====
-const joystickArea = document.getElementById('joystickArea');
-const joystickBase = document.getElementById('joystickBase');
-const joystickThumb = document.getElementById('joystickThumb');
-const boostBtn = document.getElementById('boostBtn');
+// ===== DIRECT WORLD TOUCH CONTROLS =====
+// Touch anywhere on screen → snake steers toward that world position
+// Two fingers → boost
+// Drag finger → continuous steering
+const touchTargetEl = document.getElementById('touchTarget');
+const boostZone = document.getElementById('boostZone');
+const trailCanvas = document.getElementById('touchTrail');
+const trailCtx = trailCanvas ? trailCanvas.getContext('2d') : null;
 
-let joystickTouchId = null;
-let boostTouchId = null;
-const joystickCenter = { x: 90, y: 90 }; // center of 180x180 base
-const joystickMaxDist = 55;
-const joystickDeadzone = 10;
+let touchWorldX = 0, touchWorldY = 0; // target in world coords
+let steerTouchId = null;
+let touchFingerCount = 0;
+let touchTrailPoints = [];
+let lastTouchTime = 0;
+let doubleTapTimer = 0;
 
-joystickArea.addEventListener('touchstart', e => {
-    e.preventDefault();
-    const touch = e.changedTouches[0];
-    joystickTouchId = touch.identifier;
-    updateJoystick(touch);
-}, { passive: false });
-
-joystickArea.addEventListener('touchmove', e => {
-    e.preventDefault();
-    for (const touch of e.changedTouches) {
-        if (touch.identifier === joystickTouchId) {
-            updateJoystick(touch);
-        }
-    }
-}, { passive: false });
-
-joystickArea.addEventListener('touchend', e => {
-    for (const touch of e.changedTouches) {
-        if (touch.identifier === joystickTouchId) {
-            joystickTouchId = null;
-            touchAngle = null;
-            touchActive = false;
-            joystickThumb.style.left = '55px';
-            joystickThumb.style.top = '55px';
-        }
-    }
-});
-
-joystickArea.addEventListener('touchcancel', e => {
-    joystickTouchId = null;
-    touchAngle = null;
-    touchActive = false;
-    joystickThumb.style.left = '55px';
-    joystickThumb.style.top = '55px';
-});
-
-function updateJoystick(touch) {
-    const rect = joystickBase.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    let dx = touch.clientX - cx;
-    let dy = touch.clientY - cy;
-    const d = Math.hypot(dx, dy);
-
-    if (d > joystickDeadzone) {
-        touchActive = true;
-        touchAngle = Math.atan2(dy, dx);
-    } else {
-        touchActive = false;
-        touchAngle = null;
-    }
-
-    // Clamp thumb position
-    if (d > joystickMaxDist) {
-        dx = (dx / d) * joystickMaxDist;
-        dy = (dy / d) * joystickMaxDist;
-    }
-
-    joystickThumb.style.left = (joystickCenter.x - 35 + dx) + 'px';
-    joystickThumb.style.top = (joystickCenter.y - 35 + dy) + 'px';
+// Convert screen touch to world position
+function screenToWorld(sx, sy) {
+    return {
+        x: sx + camera.x - W / 2,
+        y: sy + camera.y - H / 2
+    };
 }
 
-// Boost button touch
-boostBtn.addEventListener('touchstart', e => {
+// Main touch handlers on canvas
+canvas.addEventListener('touchstart', e => {
     e.preventDefault();
-    boostTouchId = e.changedTouches[0].identifier;
-    boosting = true;
-    boostBtn.classList.add('active');
+    touchFingerCount = e.touches.length;
+
+    // Two fingers = boost
+    if (touchFingerCount >= 2) {
+        boosting = true;
+        boostZone.classList.add('active');
+        return;
+    }
+
+    const touch = e.changedTouches[0];
+    steerTouchId = touch.identifier;
+
+    // Check if touching boost zone
+    const bzRect = boostZone.getBoundingClientRect();
+    if (touch.clientX >= bzRect.left && touch.clientX <= bzRect.right &&
+        touch.clientY >= bzRect.top && touch.clientY <= bzRect.bottom) {
+        boosting = true;
+        boostZone.classList.add('active');
+        return;
+    }
+
+    const wp = screenToWorld(touch.clientX, touch.clientY);
+    touchWorldX = wp.x;
+    touchWorldY = wp.y;
+    touchActive = true;
+
+    // Show target indicator
+    touchTargetEl.style.display = 'block';
+    touchTargetEl.classList.add('active');
+    touchTargetEl.style.left = touch.clientX + 'px';
+    touchTargetEl.style.top = touch.clientY + 'px';
+
+    // Trail
+    touchTrailPoints = [{ x: touch.clientX, y: touch.clientY, t: Date.now() }];
+
+    // Double-tap detection for boost
+    const now = Date.now();
+    if (now - lastTouchTime < 300) {
+        boosting = true;
+        boostZone.classList.add('active');
+        setTimeout(() => {
+            boosting = false;
+            boostZone.classList.remove('active');
+        }, 500);
+    }
+    lastTouchTime = now;
 }, { passive: false });
 
-boostBtn.addEventListener('touchend', e => {
+canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    touchFingerCount = e.touches.length;
+
+    if (touchFingerCount >= 2) {
+        boosting = true;
+        boostZone.classList.add('active');
+    }
+
     for (const touch of e.changedTouches) {
-        if (touch.identifier === boostTouchId) {
-            boostTouchId = null;
-            boosting = false;
-            boostBtn.classList.remove('active');
+        if (touch.identifier === steerTouchId) {
+            const wp = screenToWorld(touch.clientX, touch.clientY);
+            touchWorldX = wp.x;
+            touchWorldY = wp.y;
+            touchActive = true;
+
+            // Move target indicator
+            touchTargetEl.style.left = touch.clientX + 'px';
+            touchTargetEl.style.top = touch.clientY + 'px';
+
+            // Add trail point
+            touchTrailPoints.push({ x: touch.clientX, y: touch.clientY, t: Date.now() });
+            if (touchTrailPoints.length > 30) touchTrailPoints.shift();
         }
+    }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+    touchFingerCount = e.touches.length;
+
+    for (const touch of e.changedTouches) {
+        if (touch.identifier === steerTouchId) {
+            steerTouchId = null;
+            // Keep touchActive true briefly so snake continues toward last point
+            // then fade out
+            setTimeout(() => {
+                if (steerTouchId === null) {
+                    touchActive = false;
+                    touchTargetEl.classList.remove('active');
+                    setTimeout(() => {
+                        if (!touchActive) touchTargetEl.style.display = 'none';
+                    }, 200);
+                }
+            }, 150);
+        }
+    }
+
+    if (touchFingerCount < 2) {
+        boosting = false;
+        boostZone.classList.remove('active');
     }
 });
 
-boostBtn.addEventListener('touchcancel', () => {
-    boostTouchId = null;
+canvas.addEventListener('touchcancel', e => {
+    steerTouchId = null;
+    touchActive = false;
+    touchFingerCount = 0;
     boosting = false;
-    boostBtn.classList.remove('active');
+    touchTargetEl.style.display = 'none';
+    boostZone.classList.remove('active');
 });
 
-// Prevent default touch behaviors on canvas (no scrolling/zooming)
-canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
-canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+// Boost zone direct touch
+boostZone.addEventListener('touchstart', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    boosting = true;
+    boostZone.classList.add('active');
+}, { passive: false });
+
+boostZone.addEventListener('touchend', e => {
+    boosting = false;
+    boostZone.classList.remove('active');
+});
+
+boostZone.addEventListener('touchcancel', () => {
+    boosting = false;
+    boostZone.classList.remove('active');
+});
+
+// Draw touch trail (fading line showing drag path)
+function drawTouchTrail() {
+    if (!trailCtx || !isTouchDevice || !touchActive) {
+        if (trailCtx) trailCtx.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
+        return;
+    }
+    trailCtx.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
+    if (touchTrailPoints.length < 2) return;
+
+    const now = Date.now();
+    trailCtx.lineCap = 'round';
+    trailCtx.lineJoin = 'round';
+
+    for (let i = 1; i < touchTrailPoints.length; i++) {
+        const p0 = touchTrailPoints[i - 1];
+        const p1 = touchTrailPoints[i];
+        const age = (now - p1.t) / 500; // fade over 500ms
+        const alpha = Math.max(0, 0.4 - age * 0.4);
+        if (alpha <= 0) continue;
+
+        trailCtx.beginPath();
+        trailCtx.moveTo(p0.x, p0.y);
+        trailCtx.lineTo(p1.x, p1.y);
+        trailCtx.strokeStyle = `rgba(0, 255, 136, ${alpha})`;
+        trailCtx.lineWidth = 3;
+        trailCtx.stroke();
+    }
+
+    // Draw line from snake head (screen center) to touch point
+    if (touchTrailPoints.length > 0 && player && player.alive) {
+        const last = touchTrailPoints[touchTrailPoints.length - 1];
+        const headScreenX = player.head.x - camera.x + W / 2;
+        const headScreenY = player.head.y - camera.y + H / 2;
+
+        trailCtx.beginPath();
+        trailCtx.setLineDash([8, 8]);
+        trailCtx.moveTo(headScreenX, headScreenY);
+        trailCtx.lineTo(last.x, last.y);
+        trailCtx.strokeStyle = 'rgba(0, 255, 136, 0.15)';
+        trailCtx.lineWidth = 2;
+        trailCtx.stroke();
+        trailCtx.setLineDash([]);
+    }
+}
+
+// Prevent all iOS gestures
 document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('gesturechange', e => e.preventDefault());
 document.addEventListener('gestureend', e => e.preventDefault());
+document.addEventListener('touchmove', e => {
+    if (e.target === canvas || e.target === document.body) e.preventDefault();
+}, { passive: false });
 
 // ===== NAME INPUT =====
 function showNameInput() {
@@ -855,7 +997,7 @@ function showNameInput() {
     // Update hint for touch vs keyboard
     const hint = document.getElementById('controlHint');
     if (isTouchDevice) {
-        hint.textContent = 'Use the JOYSTICK to move, tap BOOST to speed up!';
+        hint.textContent = 'Touch & drag to steer \u2022 Two fingers or double-tap to boost!';
     }
     setTimeout(() => document.getElementById('playerNameInput').focus(), 100);
 }
@@ -1061,9 +1203,13 @@ class Snake {
         this.tongue = (this.tongue + dt * 8) % (Math.PI * 2);
 
         if (this.isPlayer) {
-            // Touch joystick input (priority)
-            if (touchActive && touchAngle !== null) {
-                this.targetAngle = touchAngle;
+            // Direct world touch (priority) - steer toward touched world position
+            if (touchActive && isTouchDevice) {
+                const dx = touchWorldX - this.head.x;
+                const dy = touchWorldY - this.head.y;
+                if (Math.hypot(dx, dy) > 15) { // dead zone around head
+                    this.targetAngle = Math.atan2(dy, dx);
+                }
             }
             // Arrow key / WASD controls
             else if (keys.up || keys.down || keys.left || keys.right) {
@@ -1935,6 +2081,9 @@ function draw() {
         ctx.fillStyle = '#fff';
         ctx.fillText('EAT ANY SIZE!', W / 2, by - 5);
     }
+
+    // Touch trail overlay
+    drawTouchTrail();
 
     // Minimap
     drawMinimap();

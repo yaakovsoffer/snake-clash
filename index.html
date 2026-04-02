@@ -1,0 +1,2339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SNAKE CLASH - Eat or Be Eaten!</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bungee+Shade&family=Bungee&family=Comic+Neue:wght@700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    background: #1a0a2e;
+    overflow: hidden;
+    font-family: 'Comic Neue', cursive;
+    user-select: none;
+}
+
+#gameCanvas {
+    display: block;
+    margin: 0 auto;
+    cursor: none;
+    image-rendering: pixelated;
+}
+
+#startScreen {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #ff6b9d, #c44dff, #6e3aff, #3dc4ff);
+    background-size: 400% 400%;
+    animation: bgPulse 4s ease infinite;
+    z-index: 100;
+}
+
+@keyframes bgPulse {
+    0%,100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+#startScreen h1 {
+    font-family: 'Bungee Shade', cursive;
+    font-size: 72px;
+    color: #fff;
+    text-shadow: 4px 4px 0 #ff6b35, 8px 8px 0 rgba(0,0,0,0.3);
+    animation: titleBounce 1s ease infinite;
+    text-align: center;
+}
+
+@keyframes titleBounce {
+    0%,100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-15px) rotate(2deg); }
+}
+
+#startScreen h2 {
+    font-family: 'Bungee', cursive;
+    font-size: 24px;
+    color: #ffe44d;
+    margin: 10px 0 30px;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+}
+
+.menu-btn {
+    font-family: 'Bungee', cursive;
+    font-size: 22px;
+    padding: 16px 50px;
+    margin: 8px;
+    border: 4px solid #fff;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+}
+
+.menu-btn:hover {
+    transform: scale(1.1) rotate(-2deg);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+}
+
+.play-btn { background: #ff6b35; color: #fff; }
+.play-btn:hover { background: #ff8f35; }
+
+#hud {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 10px 20px;
+    pointer-events: none; z-index: 50;
+}
+
+.hud-box {
+    background: rgba(0,0,0,0.6);
+    border: 3px solid rgba(255,255,255,0.3);
+    border-radius: 15px;
+    padding: 8px 16px;
+    color: #fff;
+    font-family: 'Bungee', cursive;
+    font-size: 16px;
+    backdrop-filter: blur(5px);
+}
+
+.hud-box .label { font-size: 11px; color: #aaa; }
+.hud-box .value { font-size: 22px; color: #ffe44d; }
+
+#rankDisplay {
+    display: flex; align-items: center; gap: 8px;
+}
+
+.rank-badge {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    border: 3px solid #fff;
+    animation: badgePop 0.5s ease;
+}
+
+@keyframes badgePop {
+    0% { transform: scale(0); }
+    60% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+
+#minimap {
+    position: fixed; bottom: 15px; right: 15px;
+    width: 160px; height: 160px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-radius: 12px;
+    background: rgba(0,0,0,0.5);
+    z-index: 50;
+}
+
+#worldSelect {
+    position: fixed; inset: 0;
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.9);
+    z-index: 100;
+}
+
+#worldSelect h2 {
+    font-family: 'Bungee Shade', cursive;
+    font-size: 40px; color: #fff; margin-bottom: 30px;
+}
+
+.world-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px; max-width: 700px;
+}
+
+.world-card {
+    width: 200px; height: 180px;
+    border-radius: 20px;
+    border: 4px solid rgba(255,255,255,0.3);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: 'Bungee', cursive;
+    color: #fff;
+    font-size: 16px;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+}
+
+.world-card:hover {
+    transform: translateY(-8px) scale(1.05);
+    border-color: #ffe44d;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+}
+
+.world-card .emoji { font-size: 50px; margin-bottom: 8px; }
+.world-card .locked { opacity: 0.4; font-size: 30px; }
+
+#deathScreen {
+    position: fixed; inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.85);
+    z-index: 200;
+}
+
+#deathScreen h1 {
+    font-family: 'Bungee Shade', cursive;
+    font-size: 56px; color: #ff4444;
+    animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-20px) rotate(-5deg); }
+    75% { transform: translateX(20px) rotate(5deg); }
+}
+
+#deathScreen .stats {
+    color: #fff; font-family: 'Bungee', cursive;
+    font-size: 20px; margin: 20px 0;
+    text-align: center; line-height: 2;
+}
+
+.float-text {
+    position: absolute;
+    font-family: 'Bungee', cursive;
+    font-size: 28px;
+    pointer-events: none;
+    z-index: 60;
+    animation: floatUp 1.2s ease forwards;
+}
+
+@keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-80px) scale(1.5); }
+}
+
+#levelUpBanner {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Bungee Shade', cursive;
+    font-size: 60px;
+    color: #ffe44d;
+    text-shadow: 4px 4px 0 #ff6b35;
+    display: none; z-index: 150;
+    animation: levelUp 1.5s ease forwards;
+}
+
+@keyframes levelUp {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(-10deg); }
+    30% { opacity: 1; transform: translate(-50%, -50%) scale(1.2) rotate(5deg); }
+    60% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5) translateY(-50px); }
+}
+/* ===== TUTORIAL STYLES ===== */
+#tutorialOverlay {
+    position: fixed; inset: 0;
+    z-index: 300;
+    background: #000;
+}
+
+#tutCanvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+}
+
+#tutUI {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    display: flex; flex-direction: column;
+    justify-content: flex-end;
+    padding: 20px;
+}
+
+#tutSpeechBubble {
+    display: flex; align-items: flex-end; gap: 15px;
+    margin-bottom: 15px;
+    pointer-events: auto;
+    animation: tutBubbleIn 0.4s ease;
+}
+
+@keyframes tutBubbleIn {
+    0% { opacity: 0; transform: translateY(30px) scale(0.9); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+#tutCharacter {
+    font-size: 80px;
+    animation: tutCharBob 1.5s ease infinite;
+    flex-shrink: 0;
+}
+
+@keyframes tutCharBob {
+    0%,100% { transform: translateY(0) rotate(-3deg); }
+    50% { transform: translateY(-8px) rotate(3deg); }
+}
+
+#tutTextBox {
+    background: rgba(0,0,0,0.85);
+    border: 4px solid #ffe44d;
+    border-radius: 20px;
+    padding: 20px 25px;
+    max-width: 600px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 30px rgba(255,228,77,0.2);
+}
+
+#tutTitle {
+    font-family: 'Bungee', cursive;
+    font-size: 22px;
+    color: #ffe44d;
+    margin-bottom: 8px;
+}
+
+#tutMessage {
+    font-family: 'Comic Neue', cursive;
+    font-size: 18px;
+    color: #fff;
+    line-height: 1.6;
+}
+
+#tutHighlight {
+    position: absolute;
+    border: 4px solid #ffe44d;
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(255,228,77,0.5), inset 0 0 20px rgba(255,228,77,0.1);
+    pointer-events: none;
+    transition: all 0.5s ease;
+    display: none;
+    animation: tutPulse 1.5s ease infinite;
+}
+
+@keyframes tutPulse {
+    0%,100% { box-shadow: 0 0 20px rgba(255,228,77,0.5); }
+    50% { box-shadow: 0 0 40px rgba(255,228,77,0.8); }
+}
+
+#tutProgress {
+    display: flex; gap: 6px; justify-content: center;
+    margin-bottom: 10px;
+}
+
+.tut-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    border: 2px solid rgba(255,255,255,0.3);
+    transition: all 0.3s;
+}
+
+.tut-dot.active { background: #ffe44d; border-color: #ffe44d; transform: scale(1.3); }
+.tut-dot.done { background: #4ade80; border-color: #4ade80; }
+
+#tutButtons {
+    display: flex; justify-content: center; gap: 15px;
+    pointer-events: auto;
+}
+
+#tutPrompt {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Bungee', cursive;
+    font-size: 28px;
+    color: #ffe44d;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+    text-align: center;
+    pointer-events: none;
+    animation: tutPromptPulse 1s ease infinite;
+}
+
+@keyframes tutPromptPulse {
+    0%,100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.05); }
+}
+
+.tut-arrow {
+    position: absolute;
+    width: 40px; height: 40px;
+    pointer-events: none;
+    animation: tutArrowBounce 0.8s ease infinite;
+}
+
+@keyframes tutArrowBounce {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+</style>
+</head>
+<body>
+
+<div id="startScreen">
+    <h1>SNAKE<br>CLASH</h1>
+    <h2>Eat or Be Eaten!</h2>
+    <button class="menu-btn play-btn" onclick="showNameInput()">PLAY</button>
+    <button class="menu-btn" style="background:#6e3aff;color:#fff" onclick="startTutorial()">HOW TO PLAY</button>
+</div>
+
+<!-- NAME INPUT SCREEN -->
+<div id="nameScreen" style="display:none;position:fixed;inset:0;z-index:110;background:linear-gradient(135deg,#ff6b9d,#c44dff,#6e3aff,#3dc4ff);background-size:400% 400%;animation:bgPulse 4s ease infinite;display:none;flex-direction:column;align-items:center;justify-content:center">
+    <div style="font-size:80px;animation:tutCharBob 1.5s ease infinite">\uD83D\uDC0D</div>
+    <h2 style="font-family:'Bungee',cursive;font-size:32px;color:#fff;margin:15px 0;text-shadow:2px 2px 0 rgba(0,0,0,0.4)">What's Your Name?</h2>
+    <input id="playerNameInput" type="text" maxlength="15" placeholder="Enter your name..." style="font-family:'Bungee',cursive;font-size:28px;padding:14px 30px;border-radius:50px;border:4px solid #fff;background:rgba(0,0,0,0.3);color:#ffe44d;text-align:center;outline:none;width:350px;backdrop-filter:blur(5px)" />
+    <button class="menu-btn play-btn" style="margin-top:20px" onclick="confirmName()">LET'S GO!</button>
+    <p style="font-family:'Comic Neue',cursive;color:rgba(255,255,255,0.6);margin-top:10px;font-size:16px">Use ARROW KEYS to move, SPACE to boost!</p>
+</div>
+
+<!-- TUTORIAL OVERLAY -->
+<div id="tutorialOverlay" style="display:none">
+    <canvas id="tutCanvas"></canvas>
+    <div id="tutUI">
+        <div id="tutSpeechBubble">
+            <div id="tutCharacter"></div>
+            <div id="tutTextBox">
+                <div id="tutTitle"></div>
+                <div id="tutMessage"></div>
+            </div>
+        </div>
+        <div id="tutHighlight"></div>
+        <div id="tutProgress"></div>
+        <div id="tutButtons">
+            <button class="menu-btn" id="tutSkipBtn" style="background:#666;color:#fff;font-size:14px;padding:10px 25px" onclick="endTutorial()">SKIP</button>
+            <button class="menu-btn play-btn" id="tutNextBtn" style="font-size:14px;padding:10px 25px" onclick="tutorialNext()">NEXT</button>
+            <button class="menu-btn" id="muteBtn" style="background:#333;color:#fff;font-size:20px;padding:10px 16px;min-width:0" onclick="AudioSys.toggle()">&#x1F50A;</button>
+        </div>
+        <div id="tutPrompt" style="display:none"></div>
+    </div>
+</div>
+
+<div id="worldSelect">
+    <h2>Choose Your Arena</h2>
+    <div class="world-grid" id="worldGrid"></div>
+    <button class="menu-btn play-btn" style="margin-top:30px" onclick="hideWorldSelect()">BACK</button>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="hud" style="display:none">
+    <div class="hud-box">
+        <div class="label">RANK</div>
+        <div id="rankDisplay"><div class="rank-badge" id="rankBadge"></div><span class="value" id="rankName"></span></div>
+    </div>
+    <div class="hud-box" style="text-align:center">
+        <div class="label">SCORE</div>
+        <div class="value" id="scoreDisplay">0</div>
+    </div>
+    <div class="hud-box" style="text-align:center">
+        <div class="label">MARSHMALLOWS</div>
+        <div class="value" id="marshmallowDisplay">0</div>
+    </div>
+    <div class="hud-box">
+        <div class="label">SNAKES EATEN</div>
+        <div class="value" id="killDisplay">0</div>
+    </div>
+    <div class="hud-box" style="pointer-events:auto;cursor:pointer;padding:6px 12px" onclick="AudioSys.toggle()">
+        <span id="hudMuteBtn" style="font-size:22px">&#x1F50A;</span>
+    </div>
+</div>
+
+<canvas id="minimap" width="160" height="160" style="display:none"></canvas>
+<div id="levelUpBanner">RANK UP!</div>
+
+<div id="deathScreen">
+    <h1>CLASHED!</h1>
+    <div class="stats" id="deathStats"></div>
+    <button class="menu-btn play-btn" onclick="respawn()">TRY AGAIN</button>
+    <button class="menu-btn" style="background:#6e3aff;color:#fff" onclick="backToMenu()">MENU</button>
+</div>
+
+<script>
+// ===== GAME CONFIG =====
+const WORLDS = [
+    { name: "Candy Meadow", emoji: "🍬", bg1: "#4ade80", bg2: "#22c55e", ground: "#86efac", unlock: 0,
+      desc: "Sweet beginner fields", obstacles: "lollipops", snakeCount: 8 },
+    { name: "Lava Kitchen", emoji: "🌋", bg1: "#ef4444", bg2: "#b91c1c", ground: "#fca5a5", unlock: 0,
+      desc: "Hot & spicy!", obstacles: "flames", snakeCount: 10 },
+    { name: "Ocean Splash", emoji: "🌊", bg1: "#3b82f6", bg2: "#1d4ed8", ground: "#93c5fd", unlock: 3,
+      desc: "Deep sea chomping", obstacles: "bubbles", snakeCount: 12 },
+    { name: "Haunted Swamp", emoji: "👻", bg1: "#7c3aed", bg2: "#4c1d95", ground: "#c4b5fd", unlock: 5,
+      desc: "Spooky snakes!", obstacles: "ghosts", snakeCount: 14 },
+    { name: "Cloud Kingdom", emoji: "☁️", bg1: "#f0abfc", bg2: "#d946ef", ground: "#fae8ff", unlock: 8,
+      desc: "Sky-high battles", obstacles: "stars", snakeCount: 16 },
+    { name: "Choco Factory", emoji: "🍫", bg1: "#92400e", bg2: "#78350f", ground: "#fbbf24", unlock: 12,
+      desc: "Ultimate arena", obstacles: "donuts", snakeCount: 20 },
+];
+
+const RANKS = [
+    { name: "Worm", emoji: "🪱", color: "#aaa", minScore: 0 },
+    { name: "Garden Snake", emoji: "🐍", color: "#4ade80", minScore: 50 },
+    { name: "Viper", emoji: "🐍", color: "#3b82f6", minScore: 150 },
+    { name: "Cobra", emoji: "🐍", color: "#a855f7", minScore: 350 },
+    { name: "Python", emoji: "🐍", color: "#f59e0b", minScore: 600 },
+    { name: "Anaconda", emoji: "🐍", color: "#ef4444", minScore: 1000 },
+    { name: "Dragon Snake", emoji: "🐉", color: "#ff6b35", minScore: 1800 },
+    { name: "MEGA CHOMP", emoji: "👑", color: "#ffe44d", minScore: 3000 },
+];
+
+const SNAKE_COLORS = [
+    ["#ff6b6b","#ee5a5a"], ["#ffd93d","#eec82c"], ["#6bcb77","#5aba66"],
+    ["#4d96ff","#3c85ee"], ["#ff6bff","#ee5aee"], ["#ff9f43","#ee8e32"],
+    ["#54a0ff","#438fdd"], ["#5f27cd","#4e16bc"], ["#01a3a4","#009293"],
+    ["#f368e0","#e257cf"], ["#ff9ff3","#ee8ee2"], ["#48dbfb","#37caea"],
+];
+
+const FUNNY_NAMES = [
+    "Sir Hiss", "Noodle Boy", "Slinky", "Danger Noodle", "Mr. Wiggles",
+    "Snek Lord", "Slippery Pete", "Hissy Fit", "The Verminator", "Scales McGee",
+    "Boop Noodle", "Captain Hiss", "Spaghetti", "Twisty", "El Serpento",
+    "Nope Rope", "Wiggle Worm", "Sir Slithers", "Bendy Boi", "Snakey McSnakeface",
+];
+
+// ===== CANVAS SETUP =====
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const mmCanvas = document.getElementById('minimap');
+const mmCtx = mmCanvas.getContext('2d');
+
+let W, H;
+function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ===== GAME STATE =====
+let gameRunning = false;
+let currentWorld = null;
+let player = null;
+let enemies = [];
+let marshmallows = [];
+let particles = [];
+let floatTexts = [];
+let camera = { x: 0, y: 0 };
+let score = 0;
+let totalMarshmallows = 0;
+let killCount = 0;
+let currentRank = 0;
+let highestRank = 0;
+let mouseX = W / 2, mouseY = H / 2;
+let worldW = 3000, worldH = 3000;
+let decorations = [];
+let gameTime = 0;
+let playerName = 'YOU';
+let mazeWalls = [];
+let rainbows = [];
+let rainbowActive = false;
+let rainbowTimer = 0;
+const RAINBOW_DURATION = 480; // ~8 seconds at 60fps
+
+// ===== INPUT (Arrow Keys) =====
+const keys = { up: false, down: false, left: false, right: false, space: false };
+document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowUp' || e.key === 'w') keys.up = true;
+    if (e.key === 'ArrowDown' || e.key === 's') keys.down = true;
+    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
+    if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+    if (e.key === ' ') keys.space = true;
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+});
+document.addEventListener('keyup', e => {
+    if (e.key === 'ArrowUp' || e.key === 'w') keys.up = false;
+    if (e.key === 'ArrowDown' || e.key === 's') keys.down = false;
+    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+    if (e.key === ' ') keys.space = false;
+});
+
+// Also keep mouse as fallback
+let boosting = false;
+canvas.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+canvas.addEventListener('mousedown', () => boosting = true);
+canvas.addEventListener('mouseup', () => boosting = false);
+
+// ===== NAME INPUT =====
+function showNameInput() {
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('nameScreen').style.display = 'flex';
+    document.getElementById('playerNameInput').value = playerName === 'YOU' ? '' : playerName;
+    setTimeout(() => document.getElementById('playerNameInput').focus(), 100);
+}
+
+document.getElementById('playerNameInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') confirmName();
+});
+
+function confirmName() {
+    const input = document.getElementById('playerNameInput').value.trim();
+    playerName = input || 'Player';
+    document.getElementById('nameScreen').style.display = 'none';
+    showWorldSelect();
+}
+
+// ===== MAZE GENERATION =====
+function generateMaze(ww, wh) {
+    mazeWalls = [];
+    const wallThickness = 20;
+    const cellSize = 300;
+    const cols = Math.floor(ww / cellSize);
+    const rows = Math.floor(wh / cellSize);
+    const offsetX = (ww - cols * cellSize) / 2;
+    const offsetY = (wh - rows * cellSize) / 2;
+
+    // Create grid for maze generation
+    const grid = [];
+    for (let r = 0; r < rows; r++) {
+        grid[r] = [];
+        for (let c = 0; c < cols; c++) {
+            grid[r][c] = { visited: false, walls: { top: true, right: true, bottom: true, left: true } };
+        }
+    }
+
+    // Recursive backtracker
+    const stack = [];
+    let cur = { r: 0, c: 0 };
+    grid[0][0].visited = true;
+    stack.push(cur);
+
+    while (stack.length > 0) {
+        const neighbors = [];
+        const { r, c } = cur;
+        if (r > 0 && !grid[r-1][c].visited) neighbors.push({ r: r-1, c, dir: 'top' });
+        if (r < rows-1 && !grid[r+1][c].visited) neighbors.push({ r: r+1, c, dir: 'bottom' });
+        if (c > 0 && !grid[r][c-1].visited) neighbors.push({ r, c: c-1, dir: 'left' });
+        if (c < cols-1 && !grid[r][c+1].visited) neighbors.push({ r, c: c+1, dir: 'right' });
+
+        if (neighbors.length > 0) {
+            const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+            // Remove wall between current and next
+            if (next.dir === 'top') { grid[r][c].walls.top = false; grid[next.r][next.c].walls.bottom = false; }
+            if (next.dir === 'bottom') { grid[r][c].walls.bottom = false; grid[next.r][next.c].walls.top = false; }
+            if (next.dir === 'left') { grid[r][c].walls.left = false; grid[next.r][next.c].walls.right = false; }
+            if (next.dir === 'right') { grid[r][c].walls.right = false; grid[next.r][next.c].walls.left = false; }
+            grid[next.r][next.c].visited = true;
+            stack.push(cur);
+            cur = next;
+        } else {
+            cur = stack.pop();
+        }
+    }
+
+    // Remove extra walls to create more open paths (30% removal)
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (Math.random() < 0.3 && grid[r][c].walls.right && c < cols - 1) {
+                grid[r][c].walls.right = false;
+                grid[r][c+1].walls.left = false;
+            }
+            if (Math.random() < 0.3 && grid[r][c].walls.bottom && r < rows - 1) {
+                grid[r][c].walls.bottom = false;
+                grid[r+1][c].walls.top = false;
+            }
+        }
+    }
+
+    // Convert to wall rectangles
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const x = offsetX + c * cellSize;
+            const y = offsetY + r * cellSize;
+            const cell = grid[r][c];
+            if (cell.walls.top && r > 0) {
+                mazeWalls.push({ x: x, y: y - wallThickness/2, w: cellSize, h: wallThickness });
+            }
+            if (cell.walls.left && c > 0) {
+                mazeWalls.push({ x: x - wallThickness/2, y: y, w: wallThickness, h: cellSize });
+            }
+        }
+    }
+
+    // Clear walls near player spawn (center)
+    const spawnX = ww / 2, spawnY = wh / 2;
+    mazeWalls = mazeWalls.filter(w => {
+        const wcx = w.x + w.w / 2, wcy = w.y + w.h / 2;
+        return Math.hypot(wcx - spawnX, wcy - spawnY) > 200;
+    });
+}
+
+// ===== RAINBOW POWERUP =====
+class Rainbow {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.size = 20;
+        this.bobOffset = Math.random() * Math.PI * 2;
+        this.alive = true;
+    }
+    draw(ctx, time) {
+        if (!this.alive) return;
+        const bob = Math.sin(time * 2.5 + this.bobOffset) * 6;
+        const x = this.x, y = this.y + bob;
+        const s = this.size + Math.sin(time * 3 + this.bobOffset) * 3;
+
+        // Glow
+        const grad = ctx.createRadialGradient(x, y, 0, x, y, s * 2);
+        grad.addColorStop(0, 'rgba(255,255,255,0.3)');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x, y, s * 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Rainbow arc
+        const colors = ['#ff0000','#ff8800','#ffff00','#00ff00','#0088ff','#8800ff'];
+        for (let i = 0; i < colors.length; i++) {
+            ctx.beginPath();
+            ctx.arc(x, y + 4, s - i * 2.5, Math.PI, 0);
+            ctx.strokeStyle = colors[i];
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        // Sparkles
+        for (let i = 0; i < 6; i++) {
+            const a = time * 2 + i * Math.PI / 3;
+            const sx = x + Math.cos(a) * (s + 8);
+            const sy = y + Math.sin(a) * (s + 8);
+            ctx.fillStyle = colors[i];
+            ctx.beginPath();
+            ctx.arc(sx, sy, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Label
+        ctx.font = 'bold 11px Bungee, cursive';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#fff';
+        ctx.fillText('EAT ALL!', x, y + s + 16);
+    }
+}
+
+function spawnRainbows(ww, wh, count) {
+    rainbows = [];
+    for (let i = 0; i < count; i++) {
+        rainbows.push(new Rainbow(
+            150 + Math.random() * (ww - 300),
+            150 + Math.random() * (wh - 300)
+        ));
+    }
+}
+
+// ===== SNAKE CLASS =====
+class Snake {
+    constructor(x, y, isPlayer = false) {
+        this.segments = [];
+        this.isPlayer = isPlayer;
+        this.alive = true;
+        this.speed = isPlayer ? 2.2 : 1.4;
+        this.baseSpeed = isPlayer ? 2.2 : 1.4;
+        this.angle = Math.random() * Math.PI * 2;
+        this.targetAngle = this.angle;
+        this.length = 15;
+        this.rankIndex = isPlayer ? 0 : Math.floor(Math.random() * 3);
+        this.score = RANKS[this.rankIndex].minScore + Math.floor(Math.random() * 50);
+
+        const colorSet = SNAKE_COLORS[Math.floor(Math.random() * SNAKE_COLORS.length)];
+        this.color1 = colorSet[0];
+        this.color2 = colorSet[1];
+        this.name = isPlayer ? playerName : FUNNY_NAMES[Math.floor(Math.random() * FUNNY_NAMES.length)];
+
+        this.eyeOffset = 0;
+        this.mouthOpen = 0;
+        this.wobble = Math.random() * 100;
+        this.aiTimer = 0;
+        this.aiTarget = null;
+        this.tongue = 0;
+        this.hat = isPlayer ? null : ['🎩','🎓','👒','🧢','🎀',''][Math.floor(Math.random()*6)];
+
+        for (let i = 0; i < this.length; i++) {
+            this.segments.push({ x: x - i * 8 * Math.cos(this.angle), y: y - i * 8 * Math.sin(this.angle) });
+        }
+    }
+
+    get head() { return this.segments[0]; }
+    get size() { return 12 + this.rankIndex * 3; }
+
+    update(dt) {
+        if (!this.alive) return;
+
+        this.wobble += dt * 5;
+        this.tongue = (this.tongue + dt * 8) % (Math.PI * 2);
+
+        if (this.isPlayer) {
+            // Arrow key / WASD controls
+            if (keys.up) this.targetAngle = -Math.PI / 2;
+            if (keys.down) this.targetAngle = Math.PI / 2;
+            if (keys.left) this.targetAngle = Math.PI;
+            if (keys.right) this.targetAngle = 0;
+            // Diagonal
+            if (keys.up && keys.right) this.targetAngle = -Math.PI / 4;
+            if (keys.up && keys.left) this.targetAngle = -3 * Math.PI / 4;
+            if (keys.down && keys.right) this.targetAngle = Math.PI / 4;
+            if (keys.down && keys.left) this.targetAngle = 3 * Math.PI / 4;
+            const isBoosting = (keys.space || boosting) && this.length > 8;
+            this.speed = isBoosting ? 4 : this.baseSpeed;
+            if (isBoosting && Math.random() < 0.02) AudioSys.playBoost();
+            if (isBoosting && Math.random() < 0.08) {
+                this.length = Math.max(8, this.length - 1);
+                this.segments.pop();
+            }
+        } else {
+            this.aiUpdate(dt);
+        }
+
+        // Smooth turning
+        let angleDiff = this.targetAngle - this.angle;
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+        this.angle += angleDiff * 0.12;
+
+        this.mouthOpen = Math.abs(Math.sin(this.wobble * 2)) * 0.3;
+
+        // Move head
+        const spd = this.speed * (this.isPlayer ? 1 : (0.8 + this.rankIndex * 0.05));
+        let newX = this.head.x + Math.cos(this.angle) * spd;
+        let newY = this.head.y + Math.sin(this.angle) * spd;
+
+        // World bounds
+        const margin = 50;
+        if (newX < margin || newX > worldW - margin) this.angle = Math.PI - this.angle;
+        if (newY < margin || newY > worldH - margin) this.angle = -this.angle;
+        newX = Math.max(margin, Math.min(worldW - margin, newX));
+        newY = Math.max(margin, Math.min(worldH - margin, newY));
+
+        // Maze wall collision
+        const sz = this.size;
+        for (const wall of mazeWalls) {
+            if (newX + sz > wall.x && newX - sz < wall.x + wall.w &&
+                newY + sz > wall.y && newY - sz < wall.y + wall.h) {
+                // Push out of wall
+                const overlapL = (newX + sz) - wall.x;
+                const overlapR = (wall.x + wall.w) - (newX - sz);
+                const overlapT = (newY + sz) - wall.y;
+                const overlapB = (wall.y + wall.h) - (newY - sz);
+                const minOverlap = Math.min(overlapL, overlapR, overlapT, overlapB);
+                if (minOverlap === overlapL) { newX = wall.x - sz; this.angle = Math.PI - this.angle; }
+                else if (minOverlap === overlapR) { newX = wall.x + wall.w + sz; this.angle = Math.PI - this.angle; }
+                else if (minOverlap === overlapT) { newY = wall.y - sz; this.angle = -this.angle; }
+                else { newY = wall.y + wall.h + sz; this.angle = -this.angle; }
+                break;
+            }
+        }
+
+        this.segments.unshift({ x: newX, y: newY });
+
+        while (this.segments.length > this.length) this.segments.pop();
+    }
+
+    aiUpdate(dt) {
+        this.aiTimer -= dt;
+        if (this.aiTimer <= 0) {
+            this.aiTimer = 2 + Math.random() * 3;
+
+            // Find nearest marshmallow or weaker snake
+            let bestTarget = null;
+            let bestDist = 500;
+
+            for (const m of marshmallows) {
+                const d = dist(this.head, m);
+                if (d < bestDist) { bestDist = d; bestTarget = m; }
+            }
+
+            // Chase weaker snakes, flee from stronger
+            const allSnakes = player && player.alive ? [player, ...enemies] : enemies;
+            for (const e of allSnakes) {
+                if (e === this || !e || !e.alive) continue;
+                const d = dist(this.head, e.head);
+                if (d < 400) {
+                    if (e.rankIndex < this.rankIndex || (e.rankIndex === this.rankIndex && e.length < this.length)) {
+                        if (d < bestDist) { bestDist = d; bestTarget = e.head; }
+                    } else if (e.rankIndex > this.rankIndex) {
+                        // Flee!
+                        this.targetAngle = Math.atan2(this.head.y - e.head.y, this.head.x - e.head.x);
+                        return;
+                    }
+                }
+            }
+
+            if (bestTarget) {
+                this.targetAngle = Math.atan2(bestTarget.y - this.head.y, bestTarget.x - this.head.x);
+            } else {
+                this.targetAngle += (Math.random() - 0.5) * 1.5;
+            }
+        }
+    }
+
+    draw(ctx) {
+        if (!this.alive) return;
+
+        // Draw body segments
+        for (let i = this.segments.length - 1; i >= 0; i--) {
+            const seg = this.segments[i];
+            const t = i / this.segments.length;
+            const sz = this.size * (1 - t * 0.5) * (1 + Math.sin(this.wobble + i * 0.3) * 0.05);
+
+            // Shadow
+            ctx.beginPath();
+            ctx.arc(seg.x + 3, seg.y + 3, sz, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.fill();
+
+            // Body
+            ctx.beginPath();
+            ctx.arc(seg.x, seg.y, sz, 0, Math.PI * 2);
+            if (this.isPlayer && rainbowActive) {
+                const hue = ((Date.now() / 8) + i * 25) % 360;
+                ctx.fillStyle = `hsl(${hue}, 100%, 55%)`;
+            } else {
+                ctx.fillStyle = i % 2 === 0 ? this.color1 : this.color2;
+            }
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Belly highlight
+            ctx.beginPath();
+            ctx.arc(seg.x - sz * 0.2, seg.y - sz * 0.2, sz * 0.5, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,0.15)';
+            ctx.fill();
+        }
+
+        // Draw head features
+        const h = this.head;
+        const sz = this.size;
+
+        // Tongue
+        if (Math.sin(this.tongue) > 0.3) {
+            const tongueLen = 15 + Math.sin(this.tongue) * 8;
+            const tx = h.x + Math.cos(this.angle) * (sz + tongueLen);
+            const ty = h.y + Math.sin(this.angle) * (sz + tongueLen);
+            ctx.beginPath();
+            ctx.moveTo(h.x + Math.cos(this.angle) * sz, h.y + Math.sin(this.angle) * sz);
+            ctx.lineTo(tx, ty);
+            ctx.strokeStyle = '#ff4466';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            // Fork
+            ctx.beginPath();
+            ctx.moveTo(tx, ty);
+            ctx.lineTo(tx + Math.cos(this.angle - 0.4) * 6, ty + Math.sin(this.angle - 0.4) * 6);
+            ctx.moveTo(tx, ty);
+            ctx.lineTo(tx + Math.cos(this.angle + 0.4) * 6, ty + Math.sin(this.angle + 0.4) * 6);
+            ctx.stroke();
+        }
+
+        // Eyes
+        const eyeDist = sz * 0.5;
+        const eyeAngle1 = this.angle - 0.5;
+        const eyeAngle2 = this.angle + 0.5;
+        for (const ea of [eyeAngle1, eyeAngle2]) {
+            const ex = h.x + Math.cos(ea) * eyeDist;
+            const ey = h.y + Math.sin(ea) * eyeDist;
+            // White
+            ctx.beginPath();
+            ctx.arc(ex, ey, sz * 0.4, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            // Pupil
+            ctx.beginPath();
+            ctx.arc(ex + Math.cos(this.angle) * 2, ey + Math.sin(this.angle) * 2, sz * 0.2, 0, Math.PI * 2);
+            ctx.fillStyle = '#111';
+            ctx.fill();
+            // Shine
+            ctx.beginPath();
+            ctx.arc(ex + Math.cos(this.angle) * 1, ey + Math.sin(this.angle) * 1 - 1, sz * 0.08, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+        }
+
+        // Mouth
+        if (this.mouthOpen > 0.1) {
+            ctx.beginPath();
+            ctx.arc(h.x + Math.cos(this.angle) * sz * 0.4, h.y + Math.sin(this.angle) * sz * 0.4,
+                sz * 0.3, this.angle - this.mouthOpen, this.angle + this.mouthOpen);
+            ctx.fillStyle = '#ff4466';
+            ctx.fill();
+        }
+
+        // Hat
+        if (this.hat) {
+            ctx.font = `${sz}px serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText(this.hat, h.x, h.y - sz - 2);
+        }
+
+        // Name tag - BIG for player, normal for others
+        if (this.isPlayer) {
+            // Rainbow glow when powered up
+            if (rainbowActive) {
+                const hue = (Date.now() / 10) % 360;
+                ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
+                ctx.shadowBlur = 15;
+            }
+            ctx.font = 'bold 24px Bungee, cursive';
+            ctx.textAlign = 'center';
+            // Black outline
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 5;
+            ctx.strokeText(this.name, h.x, h.y - sz - 14);
+            // Colored fill
+            if (rainbowActive) {
+                const hue = (Date.now() / 5) % 360;
+                ctx.fillStyle = `hsl(${hue}, 100%, 65%)`;
+            } else {
+                ctx.fillStyle = '#00ff88';
+            }
+            ctx.fillText(this.name, h.x, h.y - sz - 14);
+            ctx.shadowBlur = 0;
+            // Rank badge bigger
+            ctx.font = '18px serif';
+            ctx.fillText(RANKS[this.rankIndex].emoji, h.x, h.y - sz - 36);
+        } else {
+            ctx.font = 'bold 14px Comic Neue, cursive';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillText(this.name, h.x + 1, h.y - sz - 8 + 1);
+            ctx.fillStyle = '#fff';
+            ctx.fillText(this.name, h.x, h.y - sz - 8);
+            // Rank badge
+            ctx.font = '12px serif';
+            ctx.fillText(RANKS[this.rankIndex].emoji, h.x, h.y - sz - 22);
+        }
+    }
+}
+
+// ===== MARSHMALLOW CLASS =====
+class Marshmallow {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.size = 14;
+        this.bobOffset = Math.random() * Math.PI * 2;
+        this.rotation = Math.random() * Math.PI * 2;
+        this.sparkle = 0;
+        this.golden = Math.random() < 0.08;
+        this.value = this.golden ? 25 : 5;
+    }
+
+    draw(ctx, time) {
+        const bob = Math.sin(time * 3 + this.bobOffset) * 4;
+        const x = this.x;
+        const y = this.y + bob;
+        const s = this.size + Math.sin(time * 2 + this.bobOffset) * 2;
+
+        // Shadow
+        ctx.beginPath();
+        ctx.ellipse(x, this.y + s + 4, s * 0.7, 4, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        ctx.fill();
+
+        // Marshmallow body (cylinder shape)
+        ctx.beginPath();
+        ctx.ellipse(x, y + s * 0.3, s, s * 0.4, 0, 0, Math.PI * 2);
+        ctx.fillStyle = this.golden ? '#ffd700' : '#fff5eb';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.rect(x - s, y - s * 0.3, s * 2, s * 0.6);
+        ctx.fillStyle = this.golden ? '#ffd700' : '#fff5eb';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.ellipse(x, y - s * 0.3, s, s * 0.4, 0, 0, Math.PI * 2);
+        ctx.fillStyle = this.golden ? '#ffe44d' : '#fff';
+        ctx.fill();
+
+        // Face!
+        ctx.fillStyle = '#333';
+        ctx.beginPath();
+        ctx.arc(x - 4, y - 2, 2, 0, Math.PI * 2);
+        ctx.arc(x + 4, y - 2, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Smile
+        ctx.beginPath();
+        ctx.arc(x, y + 1, 4, 0, Math.PI);
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Blush
+        ctx.beginPath();
+        ctx.arc(x - 7, y + 1, 3, 0, Math.PI * 2);
+        ctx.arc(x + 7, y + 1, 3, 0, Math.PI * 2);
+        ctx.fillStyle = this.golden ? 'rgba(255,100,0,0.3)' : 'rgba(255,150,150,0.4)';
+        ctx.fill();
+
+        // Sparkle
+        if (this.golden) {
+            for (let i = 0; i < 4; i++) {
+                const a = time * 2 + i * Math.PI / 2;
+                const sx = x + Math.cos(a) * (s + 6);
+                const sy = y + Math.sin(a) * (s + 6);
+                drawStar(ctx, sx, sy, 3, '#ffe44d');
+            }
+        }
+    }
+}
+
+// ===== PARTICLE =====
+class Particle {
+    constructor(x, y, color, size, vx, vy) {
+        this.x = x; this.y = y;
+        this.color = color;
+        this.size = size || 4;
+        this.vx = vx || (Math.random() - 0.5) * 8;
+        this.vy = vy || (Math.random() - 0.5) * 8;
+        this.life = 1;
+        this.decay = 0.02 + Math.random() * 0.03;
+        this.type = Math.random() < 0.5 ? 'circle' : 'star';
+    }
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.15;
+        this.life -= this.decay;
+    }
+    draw(ctx) {
+        ctx.globalAlpha = this.life;
+        if (this.type === 'star') {
+            drawStar(ctx, this.x, this.y, this.size, this.color);
+        } else {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
+}
+
+// ===== HELPERS =====
+function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+function drawStar(ctx, x, y, r, color) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.beginPath();
+    for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * Math.PI * 2;
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+}
+
+function spawnParticles(x, y, color, count) {
+    for (let i = 0; i < count; i++) {
+        particles.push(new Particle(x, y, color, 3 + Math.random() * 5));
+    }
+}
+
+function showFloatText(x, y, text, color) {
+    const el = document.createElement('div');
+    el.className = 'float-text';
+    el.textContent = text;
+    el.style.color = color || '#ffe44d';
+    el.style.left = (x - camera.x + W/2) + 'px';
+    el.style.top = (y - camera.y + H/2) + 'px';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1200);
+}
+
+function getRankForScore(s) {
+    let r = 0;
+    for (let i = RANKS.length - 1; i >= 0; i--) {
+        if (s >= RANKS[i].minScore) { r = i; break; }
+    }
+    return r;
+}
+
+// ===== WORLD SELECT =====
+function showWorldSelect() {
+    document.getElementById('startScreen').style.display = 'none';
+    const ws = document.getElementById('worldSelect');
+    ws.style.display = 'flex';
+    const grid = document.getElementById('worldGrid');
+    grid.innerHTML = '';
+    WORLDS.forEach((w, i) => {
+        const card = document.createElement('div');
+        card.className = 'world-card';
+        card.style.background = `linear-gradient(135deg, ${w.bg1}, ${w.bg2})`;
+        const locked = highestRank < w.unlock;
+        card.innerHTML = locked
+            ? `<div class="locked">🔒</div><div>${w.name}</div><div style="font-size:12px">Rank ${w.unlock} to unlock</div>`
+            : `<div class="emoji">${w.emoji}</div><div>${w.name}</div><div style="font-size:12px">${w.desc}</div>`;
+        if (!locked) card.onclick = () => startGame(i);
+        grid.appendChild(card);
+    });
+}
+
+function hideWorldSelect() {
+    document.getElementById('worldSelect').style.display = 'none';
+    document.getElementById('startScreen').style.display = 'flex';
+}
+
+// ===== GAME START =====
+function startGame(worldIndex) {
+    document.getElementById('worldSelect').style.display = 'none';
+    document.getElementById('hud').style.display = 'flex';
+    document.getElementById('minimap').style.display = 'block';
+    document.getElementById('deathScreen').style.display = 'none';
+
+    currentWorld = WORLDS[worldIndex];
+    score = 0;
+    totalMarshmallows = 0;
+    killCount = 0;
+    currentRank = 0;
+    particles = [];
+    decorations = [];
+    gameTime = 0;
+
+    worldW = 3000 + worldIndex * 500;
+    worldH = 3000 + worldIndex * 500;
+
+    // Reset rainbow
+    rainbowActive = false;
+    rainbowTimer = 0;
+
+    // Generate maze
+    generateMaze(worldW, worldH);
+
+    // Create player
+    player = new Snake(worldW / 2, worldH / 2, true);
+    player.color1 = '#00ff88';
+    player.color2 = '#00cc66';
+    player.hat = '\uD83D\uDC51';
+    player.name = playerName;
+
+    // Initialize camera to player position
+    camera.x = worldW / 2;
+    camera.y = worldH / 2;
+
+    // Create enemies (spawn away from walls)
+    enemies = [];
+    for (let i = 0; i < currentWorld.snakeCount; i++) {
+        spawnEnemy();
+    }
+
+    // Create marshmallows (avoid walls)
+    marshmallows = [];
+    for (let i = 0; i < 60 + worldIndex * 15; i++) {
+        marshmallows.push(createSafeMarshmallow());
+    }
+
+    // Spawn rainbows (3 per world + 1 per world index)
+    spawnRainbows(worldW, worldH, 3 + worldIndex);
+
+    // Decorations
+    for (let i = 0; i < 40; i++) {
+        decorations.push({
+            x: Math.random() * worldW,
+            y: Math.random() * worldH,
+            type: currentWorld.obstacles,
+            size: 20 + Math.random() * 30,
+            rot: Math.random() * Math.PI * 2
+        });
+    }
+
+    updateHUD();
+    gameRunning = true;
+}
+
+function createSafeMarshmallow() {
+    // Try to place marshmallow not inside a wall
+    for (let attempt = 0; attempt < 10; attempt++) {
+        const x = 100 + Math.random() * (worldW - 200);
+        const y = 100 + Math.random() * (worldH - 200);
+        let blocked = false;
+        for (const w of mazeWalls) {
+            if (x > w.x - 20 && x < w.x + w.w + 20 && y > w.y - 20 && y < w.y + w.h + 20) {
+                blocked = true; break;
+            }
+        }
+        if (!blocked) return new Marshmallow(x, y);
+    }
+    return new Marshmallow(100 + Math.random() * (worldW - 200), 100 + Math.random() * (worldH - 200));
+}
+
+function spawnEnemy() {
+    const x = 100 + Math.random() * (worldW - 200);
+    const y = 100 + Math.random() * (worldH - 200);
+    const e = new Snake(x, y, false);
+    // Scale enemy ranks based on world
+    const worldIdx = WORLDS.indexOf(currentWorld);
+    e.rankIndex = Math.min(RANKS.length - 1, Math.floor(Math.random() * (2 + worldIdx)));
+    e.score = RANKS[e.rankIndex].minScore + Math.floor(Math.random() * 80);
+    e.length = 12 + e.rankIndex * 5 + Math.floor(Math.random() * 10);
+    for (let i = e.segments.length; i < e.length; i++) {
+        const last = e.segments[e.segments.length - 1];
+        e.segments.push({ x: last.x, y: last.y });
+    }
+    enemies.push(e);
+}
+
+function respawn() {
+    startGame(WORLDS.indexOf(currentWorld));
+}
+
+function backToMenu() {
+    gameRunning = false;
+    document.getElementById('deathScreen').style.display = 'none';
+    document.getElementById('hud').style.display = 'none';
+    document.getElementById('minimap').style.display = 'none';
+    document.getElementById('startScreen').style.display = 'flex';
+}
+
+// ===== UPDATE =====
+function update(dt) {
+    if (!gameRunning || !player || !player.alive) return;
+
+    gameTime += dt;
+    player.update(dt);
+
+    // Camera follow
+    camera.x += (player.head.x - camera.x) * 0.1;
+    camera.y += (player.head.y - camera.y) * 0.1;
+
+    // Update enemies
+    for (const e of enemies) e.update(dt);
+
+    // Check player eating marshmallows
+    for (let i = marshmallows.length - 1; i >= 0; i--) {
+        const m = marshmallows[i];
+        if (dist(player.head, m) < player.size + m.size) {
+            score += m.value;
+            totalMarshmallows++;
+            player.length += m.golden ? 5 : 2;
+            spawnParticles(m.x, m.y, m.golden ? '#ffd700' : '#fff', 8);
+            showFloatText(m.x, m.y, m.golden ? '+25 GOLDEN!' : `+${m.value}`, m.golden ? '#ffd700' : '#fff');
+            if (m.golden) AudioSys.playGoldenCollect(); else AudioSys.playCollect();
+            marshmallows.splice(i, 1);
+            // Respawn
+            marshmallows.push(createSafeMarshmallow());
+        }
+    }
+
+    // Enemy eating marshmallows
+    for (const e of enemies) {
+        if (!e.alive) continue;
+        for (let i = marshmallows.length - 1; i >= 0; i--) {
+            if (dist(e.head, marshmallows[i]) < e.size + marshmallows[i].size) {
+                e.length += 2;
+                e.score += marshmallows[i].value;
+                e.rankIndex = getRankForScore(e.score);
+                marshmallows.splice(i, 1);
+                marshmallows.push(new Marshmallow(
+                    100 + Math.random() * (worldW - 200),
+                    100 + Math.random() * (worldH - 200)
+                ));
+            }
+        }
+    }
+
+    // Rainbow powerup collision
+    for (const rb of rainbows) {
+        if (!rb.alive) continue;
+        if (dist(player.head, rb) < player.size + rb.size) {
+            rb.alive = false;
+            rainbowActive = true;
+            rainbowTimer = RAINBOW_DURATION;
+            spawnParticles(rb.x, rb.y, '#ff0000', 5);
+            spawnParticles(rb.x, rb.y, '#ffff00', 5);
+            spawnParticles(rb.x, rb.y, '#00ff00', 5);
+            spawnParticles(rb.x, rb.y, '#0088ff', 5);
+            spawnParticles(rb.x, rb.y, '#8800ff', 5);
+            showFloatText(rb.x, rb.y, 'RAINBOW MODE!', '#ff44ff');
+            AudioSys.playRankUp();
+        }
+    }
+
+    // Rainbow timer
+    if (rainbowActive) {
+        rainbowTimer -= 1;
+        if (rainbowTimer <= 0) {
+            rainbowActive = false;
+            showFloatText(player.head.x, player.head.y, 'Rainbow faded!', '#aaa');
+        }
+    }
+
+    // Snake vs Snake collisions
+    // Player eating enemies
+    for (const e of enemies) {
+        if (!e.alive) continue;
+        if (dist(player.head, e.head) < player.size + e.size) {
+            if (rainbowActive || player.rankIndex > e.rankIndex || (player.rankIndex === e.rankIndex && player.length > e.length)) {
+                // Player eats enemy!
+                e.alive = false;
+                score += 50 + e.rankIndex * 30;
+                player.length += Math.floor(e.length * 0.5);
+                killCount++;
+                spawnParticles(e.head.x, e.head.y, e.color1, 20);
+                showFloatText(e.head.x, e.head.y, `ATE ${e.name}! +${50 + e.rankIndex * 30}`, '#ff6b35');
+                AudioSys.playChomp();
+                // Respawn enemy after delay
+                setTimeout(() => {
+                    const idx = enemies.indexOf(e);
+                    if (idx >= 0) enemies.splice(idx, 1);
+                    spawnEnemy();
+                }, 3000);
+            } else if (e.rankIndex > player.rankIndex || (e.rankIndex === player.rankIndex && e.length > player.length)) {
+                // Player gets eaten!
+                playerDeath(e);
+            }
+        }
+    }
+
+    // Enemy vs Enemy
+    for (let i = 0; i < enemies.length; i++) {
+        for (let j = i + 1; j < enemies.length; j++) {
+            const a = enemies[i], b = enemies[j];
+            if (!a.alive || !b.alive) continue;
+            if (dist(a.head, b.head) < a.size + b.size) {
+                let winner, loser;
+                if (a.rankIndex > b.rankIndex || (a.rankIndex === b.rankIndex && a.length > b.length)) {
+                    winner = a; loser = b;
+                } else if (b.rankIndex > a.rankIndex || (b.rankIndex === a.rankIndex && b.length > a.length)) {
+                    winner = b; loser = a;
+                } else continue;
+
+                loser.alive = false;
+                winner.length += Math.floor(loser.length * 0.3);
+                winner.score += 30;
+                winner.rankIndex = getRankForScore(winner.score);
+                spawnParticles(loser.head.x, loser.head.y, loser.color1, 15);
+                setTimeout(() => {
+                    const idx = enemies.indexOf(loser);
+                    if (idx >= 0) enemies.splice(idx, 1);
+                    spawnEnemy();
+                }, 3000);
+            }
+        }
+    }
+
+    // Also check player head hitting enemy body segments (not when rainbow)
+    if (!rainbowActive) {
+        for (const e of enemies) {
+            if (!e.alive) continue;
+            for (let i = 3; i < e.segments.length; i++) {
+                if (dist(player.head, e.segments[i]) < player.size + e.size * (1 - i/e.segments.length) * 0.8) {
+                    if (e.rankIndex >= player.rankIndex) {
+                        playerDeath(e);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // Update rank
+    const newRank = getRankForScore(score);
+    if (newRank > currentRank) {
+        currentRank = newRank;
+        if (newRank > highestRank) highestRank = newRank;
+        player.rankIndex = newRank;
+        const banner = document.getElementById('levelUpBanner');
+        banner.textContent = `RANK UP! ${RANKS[newRank].emoji} ${RANKS[newRank].name}!`;
+        banner.style.display = 'block';
+        banner.style.animation = 'none';
+        banner.offsetHeight;
+        banner.style.animation = 'levelUp 1.5s ease forwards';
+        setTimeout(() => banner.style.display = 'none', 1500);
+        spawnParticles(player.head.x, player.head.y, RANKS[newRank].color, 30);
+        AudioSys.playRankUp();
+    }
+
+    // Particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+        particles[i].update();
+        if (particles[i].life <= 0) particles.splice(i, 1);
+    }
+
+    updateHUD();
+}
+
+function playerDeath(killer) {
+    player.alive = false;
+    gameRunning = false;
+    spawnParticles(player.head.x, player.head.y, '#00ff88', 30);
+    AudioSys.playDeath();
+
+    const ds = document.getElementById('deathScreen');
+    ds.style.display = 'flex';
+    document.getElementById('deathStats').innerHTML =
+        `Eaten by: <span style="color:${killer.color1}">${killer.name}</span><br>` +
+        `Score: ${score}<br>` +
+        `Marshmallows: ${totalMarshmallows}<br>` +
+        `Snakes Eaten: ${killCount}<br>` +
+        `Rank Achieved: ${RANKS[currentRank].emoji} ${RANKS[currentRank].name}`;
+}
+
+function updateHUD() {
+    document.getElementById('scoreDisplay').textContent = score;
+    document.getElementById('marshmallowDisplay').textContent = totalMarshmallows;
+    document.getElementById('killDisplay').textContent = killCount;
+    const badge = document.getElementById('rankBadge');
+    badge.textContent = RANKS[currentRank].emoji;
+    badge.style.background = RANKS[currentRank].color;
+    document.getElementById('rankName').textContent = RANKS[currentRank].name;
+}
+
+// ===== DRAW =====
+function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    if (!gameRunning && !player) return;
+    if (!player || !currentWorld) return;
+
+    const cx = camera.x - W / 2;
+    const cy = camera.y - H / 2;
+
+    ctx.save();
+    ctx.translate(-cx, -cy);
+
+    // Background
+    const bg1 = currentWorld.bg1;
+    const bg2 = currentWorld.bg2;
+    ctx.fillStyle = bg2;
+    ctx.fillRect(0, 0, worldW, worldH);
+
+    // Grid pattern
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    ctx.lineWidth = 1;
+    const gridSize = 60;
+    const startGX = Math.floor(cx / gridSize) * gridSize;
+    const startGY = Math.floor(cy / gridSize) * gridSize;
+    for (let x = startGX; x < cx + W + gridSize; x += gridSize) {
+        ctx.beginPath(); ctx.moveTo(x, cy); ctx.lineTo(x, cy + H); ctx.stroke();
+    }
+    for (let y = startGY; y < cy + H + gridSize; y += gridSize) {
+        ctx.beginPath(); ctx.moveTo(cx, y); ctx.lineTo(cx + W, y); ctx.stroke();
+    }
+
+    // Border
+    ctx.strokeStyle = '#ff4444';
+    ctx.lineWidth = 6;
+    ctx.setLineDash([20, 10]);
+    ctx.strokeRect(10, 10, worldW - 20, worldH - 20);
+    ctx.setLineDash([]);
+
+    // Decorations
+    for (const d of decorations) {
+        if (d.x < cx - 50 || d.x > cx + W + 50 || d.y < cy - 50 || d.y > cy + H + 50) continue;
+        ctx.save();
+        ctx.translate(d.x, d.y);
+        ctx.rotate(d.rot);
+        ctx.globalAlpha = 0.3;
+        const emojis = {
+            lollipops: '🍭', flames: '🔥', bubbles: '🫧',
+            ghosts: '👻', stars: '⭐', donuts: '🍩'
+        };
+        ctx.font = `${d.size}px serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(emojis[d.type] || '🌸', 0, 0);
+        ctx.globalAlpha = 1;
+        ctx.restore();
+    }
+
+    // Maze walls (Pacman style)
+    for (const w of mazeWalls) {
+        if (w.x + w.w < cx - 20 || w.x > cx + W + 20 || w.y + w.h < cy - 20 || w.y > cy + H + 20) continue;
+        // Neon glow wall
+        ctx.shadowColor = '#4488ff';
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = '#1a3a6e';
+        ctx.fillRect(w.x, w.y, w.w, w.h);
+        // Border highlight
+        ctx.strokeStyle = '#4488ff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(w.x, w.y, w.w, w.h);
+        // Inner shine
+        ctx.fillStyle = 'rgba(68,136,255,0.15)';
+        ctx.fillRect(w.x + 3, w.y + 3, w.w - 6, w.h - 6);
+        ctx.shadowBlur = 0;
+    }
+
+    // Rainbows
+    for (const rb of rainbows) {
+        if (!rb.alive) continue;
+        if (rb.x < cx - 40 || rb.x > cx + W + 40 || rb.y < cy - 40 || rb.y > cy + H + 40) continue;
+        rb.draw(ctx, gameTime);
+    }
+
+    // Marshmallows
+    for (const m of marshmallows) {
+        if (m.x < cx - 30 || m.x > cx + W + 30 || m.y < cy - 30 || m.y > cy + H + 30) continue;
+        m.draw(ctx, gameTime);
+    }
+
+    // Enemies (draw behind then in front of player)
+    if (player && player.alive && player.segments.length > 0) {
+        const behindEnemies = enemies.filter(e => e.alive && e.segments.length > 0 && e.head.y <= player.head.y);
+        const frontEnemies = enemies.filter(e => e.alive && e.segments.length > 0 && e.head.y > player.head.y);
+
+        behindEnemies.forEach(e => e.draw(ctx));
+        player.draw(ctx);
+        frontEnemies.forEach(e => e.draw(ctx));
+    } else {
+        enemies.filter(e => e.alive && e.segments.length > 0).forEach(e => e.draw(ctx));
+    }
+
+    // Dead enemy ghosts
+    enemies.filter(e => !e.alive && e.segments.length > 0).forEach(e => {
+        ctx.globalAlpha = 0.3;
+        e.draw(ctx);
+        ctx.globalAlpha = 1;
+    });
+
+    // Particles
+    for (const p of particles) p.draw(ctx);
+
+    ctx.restore();
+
+    // Rainbow timer bar
+    if (rainbowActive) {
+        const barW = 300, barH = 16;
+        const bx = (W - barW) / 2, by = H - 50;
+        const pct = rainbowTimer / RAINBOW_DURATION;
+        // Background
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.beginPath();
+        ctx.roundRect(bx, by, barW, barH, 8);
+        ctx.fill();
+        // Rainbow fill
+        const grad = ctx.createLinearGradient(bx, by, bx + barW * pct, by);
+        grad.addColorStop(0, '#ff0000');
+        grad.addColorStop(0.17, '#ff8800');
+        grad.addColorStop(0.33, '#ffff00');
+        grad.addColorStop(0.5, '#00ff00');
+        grad.addColorStop(0.67, '#0088ff');
+        grad.addColorStop(0.83, '#8800ff');
+        grad.addColorStop(1, '#ff00ff');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.roundRect(bx, by, barW * pct, barH, 8);
+        ctx.fill();
+        // Label
+        ctx.font = 'bold 12px Bungee, cursive';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#fff';
+        ctx.fillText('EAT ANY SIZE!', W / 2, by - 5);
+    }
+
+    // Minimap
+    drawMinimap();
+}
+
+function drawMinimap() {
+    if (!mmCtx || worldW <= 0 || worldH <= 0) return;
+    const mw = 160, mh = 160;
+    mmCtx.clearRect(0, 0, mw, mh);
+    mmCtx.fillStyle = 'rgba(0,0,0,0.6)';
+    mmCtx.fillRect(0, 0, mw, mh);
+
+    const sx = mw / worldW, sy = mh / worldH;
+
+    // Maze walls
+    mmCtx.fillStyle = '#4488ff';
+    for (const w of mazeWalls) {
+        mmCtx.fillRect(w.x * sx, w.y * sy, Math.max(1, w.w * sx), Math.max(1, w.h * sy));
+    }
+
+    // Marshmallows as tiny dots
+    mmCtx.fillStyle = '#fff';
+    for (const m of marshmallows) {
+        if (m.golden) mmCtx.fillStyle = '#ffd700';
+        else mmCtx.fillStyle = 'rgba(255,255,255,0.4)';
+        mmCtx.fillRect(m.x * sx, m.y * sy, 2, 2);
+    }
+
+    // Enemies
+    for (const e of enemies) {
+        if (!e.alive) continue;
+        mmCtx.fillStyle = e.color1;
+        mmCtx.beginPath();
+        mmCtx.arc(e.head.x * sx, e.head.y * sy, 3, 0, Math.PI * 2);
+        mmCtx.fill();
+    }
+
+    // Player
+    if (player && player.alive) {
+        mmCtx.fillStyle = '#00ff88';
+        mmCtx.beginPath();
+        mmCtx.arc(player.head.x * sx, player.head.y * sy, 4, 0, Math.PI * 2);
+        mmCtx.fill();
+        mmCtx.strokeStyle = '#fff';
+        mmCtx.lineWidth = 1;
+        mmCtx.stroke();
+    }
+
+    // Viewport box
+    if (camera) {
+        mmCtx.strokeStyle = 'rgba(255,255,255,0.5)';
+        mmCtx.lineWidth = 1;
+        mmCtx.strokeRect(
+            (camera.x - W/2) * sx,
+            (camera.y - H/2) * sy,
+            W * sx, H * sy
+        );
+    }
+}
+
+// ===== AUDIO SYSTEM =====
+const AudioSys = {
+    ctx: null,
+    muted: false,
+    speechSynth: window.speechSynthesis,
+    currentUtterance: null,
+    voiceReady: false,
+    preferredVoice: null,
+
+    init() {
+        if (this.ctx) return;
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        // Find a fun voice
+        this._loadVoices();
+        this.speechSynth.addEventListener('voiceschanged', () => this._loadVoices());
+    },
+
+    _loadVoices() {
+        const voices = this.speechSynth.getVoices();
+        if (voices.length === 0) return;
+        this.voiceReady = true;
+        // Prefer a friendly English voice
+        const preferred = ['Samantha', 'Google UK English Female', 'Microsoft Zira', 'Karen', 'Fiona', 'Victoria', 'Google US English'];
+        for (const name of preferred) {
+            const found = voices.find(v => v.name.includes(name));
+            if (found) { this.preferredVoice = found; return; }
+        }
+        // Fallback to first English voice
+        this.preferredVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+    },
+
+    speak(text, onEnd) {
+        if (this.muted) { if (onEnd) onEnd(); return; }
+        this.init();
+        // Cancel any ongoing speech
+        this.speechSynth.cancel();
+
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.rate = 1.05;
+        utter.pitch = 1.2; // Slightly high pitch for cartoony feel
+        utter.volume = 1;
+        if (this.preferredVoice) utter.voice = this.preferredVoice;
+        utter.onend = () => { this.currentUtterance = null; if (onEnd) onEnd(); };
+        utter.onerror = () => { this.currentUtterance = null; if (onEnd) onEnd(); };
+        this.currentUtterance = utter;
+        this.speechSynth.speak(utter);
+    },
+
+    stopSpeech() {
+        this.speechSynth.cancel();
+        this.currentUtterance = null;
+    },
+
+    // Fun sound effects using oscillator tones
+    playTone(freq, duration, type, vol) {
+        if (this.muted) return;
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type || 'sine';
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(vol || 0.15, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + (duration || 0.2));
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + (duration || 0.2));
+    },
+
+    // Coin/marshmallow collect sound
+    playCollect() {
+        this.playTone(880, 0.08, 'sine', 0.12);
+        setTimeout(() => this.playTone(1100, 0.1, 'sine', 0.12), 60);
+        setTimeout(() => this.playTone(1320, 0.15, 'sine', 0.1), 120);
+    },
+
+    // Golden marshmallow
+    playGoldenCollect() {
+        [880, 1100, 1320, 1760].forEach((f, i) => {
+            setTimeout(() => this.playTone(f, 0.12, 'sine', 0.12), i * 70);
+        });
+    },
+
+    // Eat a snake
+    playChomp() {
+        this.playTone(200, 0.1, 'sawtooth', 0.15);
+        setTimeout(() => this.playTone(150, 0.15, 'sawtooth', 0.12), 80);
+        setTimeout(() => this.playTone(300, 0.2, 'square', 0.08), 150);
+    },
+
+    // Rank up fanfare
+    playRankUp() {
+        const notes = [523, 659, 784, 1047];
+        notes.forEach((f, i) => {
+            setTimeout(() => this.playTone(f, 0.25, 'sine', 0.12), i * 120);
+        });
+        setTimeout(() => {
+            this.playTone(1047, 0.4, 'sine', 0.1);
+            this.playTone(1319, 0.4, 'sine', 0.08);
+        }, notes.length * 120);
+    },
+
+    // Death sound
+    playDeath() {
+        [400, 350, 300, 200, 150].forEach((f, i) => {
+            setTimeout(() => this.playTone(f, 0.2, 'sawtooth', 0.1), i * 100);
+        });
+    },
+
+    // Boost whoosh
+    playBoost() {
+        if (this.muted) return;
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.2);
+    },
+
+    // Tutorial step chime
+    playStepChime() {
+        this.playTone(660, 0.1, 'sine', 0.1);
+        setTimeout(() => this.playTone(880, 0.15, 'sine', 0.1), 100);
+    },
+
+    // Tutorial complete fanfare
+    playComplete() {
+        this.playTone(523, 0.15, 'sine', 0.12);
+        setTimeout(() => this.playTone(659, 0.15, 'sine', 0.12), 120);
+        setTimeout(() => this.playTone(784, 0.15, 'sine', 0.12), 240);
+        setTimeout(() => {
+            this.playTone(1047, 0.3, 'sine', 0.1);
+            this.playTone(784, 0.3, 'sine', 0.08);
+            this.playTone(523, 0.3, 'sine', 0.06);
+        }, 360);
+    },
+
+    toggle() {
+        this.muted = !this.muted;
+        if (this.muted) this.stopSpeech();
+        const icon = this.muted ? '\uD83D\uDD07' : '\uD83D\uDD0A';
+        const muteBtn = document.getElementById('muteBtn');
+        const hudMuteBtn = document.getElementById('hudMuteBtn');
+        if (muteBtn) muteBtn.textContent = icon;
+        if (hudMuteBtn) hudMuteBtn.textContent = icon;
+    }
+};
+
+// ===== TUTORIAL SYSTEM =====
+const tutCanvas = document.getElementById('tutCanvas');
+const tutCtx = tutCanvas ? tutCanvas.getContext('2d') : null;
+let tutStep = 0;
+let tutRunning = false;
+let tutPlayer = null;
+let tutEnemies = [];
+let tutMarshmallows = [];
+let tutParticles = [];
+let tutTime = 0;
+let tutMouseX = 0, tutMouseY = 0;
+let tutWaitingForAction = false;
+let tutActionDone = false;
+let tutBoosting = false;
+let tutAteCount = 0;
+
+const TUTORIAL_STEPS = [
+    {
+        title: "Welcome to Snake Clash!",
+        message: "Hey there, little snek! Ready to learn how to CHOMP your way to the top? Let's go through the basics!",
+        character: "\uD83D\uDC0D",
+        action: null
+    },
+    {
+        title: "Move Your Snake",
+        message: "Move your mouse around to steer your snake. Your snake follows wherever your cursor goes. Try moving around the arena!",
+        character: "\uD83D\uDC0D",
+        action: "move",
+        prompt: "Move your mouse around!"
+    },
+    {
+        title: "Collect Marshmallows!",
+        message: "See those cute bouncy marshmallows? Slither over them to eat them! Each one gives you points and makes you longer. Golden ones are worth 5x!",
+        character: "\uD83C\uDF6C",
+        action: "eat_marshmallow",
+        prompt: "Eat 3 marshmallows!"
+    },
+    {
+        title: "Speed Boost!",
+        message: "Hold LEFT CLICK to boost your speed! But careful - boosting makes you shorter over time. Use it to chase prey or escape danger!",
+        character: "\u26A1",
+        action: "boost",
+        prompt: "Hold click to boost!"
+    },
+    {
+        title: "The Ranking System",
+        message: "Every snake has a RANK shown by their badge. You start as a Worm \uD83E\uDEB1 and rank up by scoring points. Higher rank = BIGGER snake that can eat more opponents!",
+        character: "\uD83C\uDFC6",
+        action: null
+    },
+    {
+        title: "Eat Other Snakes!",
+        message: "You can eat snakes that are LOWER rank than you (or smaller if same rank). But watch out - bigger snakes can eat YOU! The red snake below is weaker - go chomp it!",
+        character: "\uD83D\uDE08",
+        action: "eat_snake",
+        prompt: "Eat the small red snake!"
+    },
+    {
+        title: "Avoid Bigger Snakes!",
+        message: "See that HUGE purple snake? It's a higher rank than you! If it catches you, GAME OVER. Stay away from snakes bigger than you until you rank up!",
+        character: "\uD83D\uDE31",
+        action: "avoid",
+        prompt: "Stay alive for 5 seconds!"
+    },
+    {
+        title: "Different Arenas",
+        message: "There are 6 different arenas to play in! Each one has more snakes and tougher competition. Unlock new arenas by reaching higher ranks!",
+        character: "\uD83C\uDF0D",
+        action: null
+    },
+    {
+        title: "You're Ready!",
+        message: "That's everything! Remember: eat marshmallows, rank up, eat smaller snakes, avoid bigger ones, and HAVE FUN! Now go show 'em who's the biggest snake!",
+        character: "\uD83D\uDC51",
+        action: null
+    }
+];
+
+function startTutorial() {
+    document.getElementById('startScreen').style.display = 'none';
+    const overlay = document.getElementById('tutorialOverlay');
+    overlay.style.display = 'block';
+
+    tutCanvas.width = window.innerWidth;
+    tutCanvas.height = window.innerHeight;
+
+    tutStep = 0;
+    tutRunning = true;
+    tutTime = 0;
+    tutAteCount = 0;
+    tutParticles = [];
+
+    // Create tutorial player
+    tutPlayer = new Snake(tutCanvas.width / 2, tutCanvas.height / 2, true);
+    tutPlayer.color1 = '#00ff88';
+    tutPlayer.color2 = '#00cc66';
+    tutPlayer.hat = '\uD83D\uDC51';
+    tutPlayer.rankIndex = 1; // Garden Snake for tutorial
+
+    tutMouseX = tutCanvas.width / 2;
+    tutMouseY = tutCanvas.height / 2;
+
+    // Tutorial marshmallows
+    tutMarshmallows = [];
+    for (let i = 0; i < 15; i++) {
+        tutMarshmallows.push(new Marshmallow(
+            100 + Math.random() * (tutCanvas.width - 200),
+            100 + Math.random() * (tutCanvas.height - 200)
+        ));
+    }
+
+    // Tutorial enemies
+    tutEnemies = [];
+
+    setupTutorialStep();
+    renderTutProgress();
+
+    // Tutorial input
+    tutCanvas.addEventListener('mousemove', tutMouseMove);
+    tutCanvas.addEventListener('mousedown', tutMouseDown);
+    tutCanvas.addEventListener('mouseup', tutMouseUp);
+
+    requestAnimationFrame(tutLoop);
+}
+
+function tutMouseMove(e) { tutMouseX = e.clientX; tutMouseY = e.clientY; }
+function tutMouseDown() { tutBoosting = true; }
+function tutMouseUp() { tutBoosting = false; }
+
+function setupTutorialStep() {
+    const step = TUTORIAL_STEPS[tutStep];
+    document.getElementById('tutTitle').textContent = step.title;
+    document.getElementById('tutMessage').textContent = step.message;
+    document.getElementById('tutCharacter').textContent = step.character;
+
+    tutWaitingForAction = !!step.action;
+    tutActionDone = false;
+
+    const prompt = document.getElementById('tutPrompt');
+    const nextBtn = document.getElementById('tutNextBtn');
+
+    if (step.action) {
+        prompt.style.display = 'block';
+        prompt.textContent = step.prompt;
+        nextBtn.style.display = 'none';
+    } else {
+        prompt.style.display = 'none';
+        nextBtn.style.display = 'inline-block';
+    }
+
+    // Speak the tutorial step
+    AudioSys.init();
+    AudioSys.playStepChime();
+    // Small delay so chime plays before speech
+    setTimeout(() => {
+        AudioSys.speak(step.title + '. ' + step.message);
+    }, 250);
+
+    // Setup action-specific elements
+    if (step.action === 'eat_snake') {
+        tutAteCount = 0;
+        // Spawn a small weak enemy
+        tutEnemies = tutEnemies.filter(e => e.name !== 'Lil Snek');
+        const weak = new Snake(tutPlayer.head.x + 200, tutPlayer.head.y - 100, false);
+        weak.color1 = '#ff6b6b';
+        weak.color2 = '#ee5a5a';
+        weak.name = 'Lil Snek';
+        weak.rankIndex = 0;
+        weak.length = 8;
+        weak.segments = [];
+        for (let i = 0; i < weak.length; i++) {
+            weak.segments.push({ x: weak.head ? weak.head.x : tutPlayer.head.x + 200 - i * 8, y: tutPlayer.head.y - 100 });
+        }
+        // Fix: ensure segments exist
+        if (weak.segments.length === 0) {
+            const sx = tutPlayer.head.x + 200;
+            const sy = tutPlayer.head.y - 100;
+            for (let i = 0; i < 8; i++) {
+                weak.segments.push({ x: sx - i * 8, y: sy });
+            }
+        }
+        tutEnemies.push(weak);
+    }
+
+    if (step.action === 'avoid') {
+        tutEnemies = tutEnemies.filter(e => e.name !== 'BIG BOI');
+        const big = new Snake(tutPlayer.head.x - 300, tutPlayer.head.y, false);
+        big.color1 = '#a855f7';
+        big.color2 = '#7c3aed';
+        big.name = 'BIG BOI';
+        big.rankIndex = 4;
+        big.length = 40;
+        big.hat = '\uD83D\uDE08';
+        big.segments = [];
+        for (let i = 0; i < big.length; i++) {
+            big.segments.push({ x: (tutPlayer.head.x - 300) - i * 8, y: tutPlayer.head.y });
+        }
+        tutEnemies.push(big);
+        tutActionDone = false;
+        tutTime = 0; // Reset timer for survive challenge
+    }
+
+    // Animate speech bubble
+    const bubble = document.getElementById('tutSpeechBubble');
+    bubble.style.animation = 'none';
+    bubble.offsetHeight;
+    bubble.style.animation = 'tutBubbleIn 0.4s ease';
+
+    renderTutProgress();
+}
+
+function renderTutProgress() {
+    const container = document.getElementById('tutProgress');
+    container.innerHTML = '';
+    for (let i = 0; i < TUTORIAL_STEPS.length; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'tut-dot';
+        if (i === tutStep) dot.classList.add('active');
+        else if (i < tutStep) dot.classList.add('done');
+        container.appendChild(dot);
+    }
+}
+
+function tutorialNext() {
+    tutStep++;
+    if (tutStep >= TUTORIAL_STEPS.length) {
+        endTutorial();
+        return;
+    }
+    setupTutorialStep();
+}
+
+function completeTutAction() {
+    tutWaitingForAction = false;
+    tutActionDone = true;
+    document.getElementById('tutPrompt').style.display = 'none';
+    document.getElementById('tutNextBtn').style.display = 'inline-block';
+    document.getElementById('tutNextBtn').textContent = tutStep < TUTORIAL_STEPS.length - 1 ? 'NEXT' : 'LET\'S GO!';
+
+    // Show a "Nice!" float
+    const prompt = document.getElementById('tutPrompt');
+    prompt.style.display = 'block';
+    prompt.textContent = '\u2705 Nice job!';
+    setTimeout(() => { prompt.style.display = 'none'; }, 1200);
+
+    // Audio feedback
+    AudioSys.playComplete();
+    AudioSys.speak('Nice job!');
+}
+
+function endTutorial() {
+    tutRunning = false;
+    AudioSys.stopSpeech();
+    document.getElementById('tutorialOverlay').style.display = 'none';
+    document.getElementById('startScreen').style.display = 'flex';
+
+    tutCanvas.removeEventListener('mousemove', tutMouseMove);
+    tutCanvas.removeEventListener('mousedown', tutMouseDown);
+    tutCanvas.removeEventListener('mouseup', tutMouseUp);
+}
+
+let tutMoveDistance = 0;
+let tutMarshmallowsEaten = 0;
+let tutBoostTime = 0;
+let tutSurviveTime = 0;
+
+function tutUpdate(dt) {
+    if (!tutRunning || !tutPlayer) return;
+    tutTime += dt;
+
+    // Move player toward mouse
+    const dx = tutMouseX - tutCanvas.width / 2;
+    const dy = tutMouseY - tutCanvas.height / 2;
+    tutPlayer.targetAngle = Math.atan2(dy, dx);
+    tutPlayer.speed = tutBoosting && tutPlayer.length > 8 ? 5.5 : 3;
+
+    if (tutBoosting && tutPlayer.length > 8 && Math.random() < 0.05) {
+        tutPlayer.length = Math.max(8, tutPlayer.length - 1);
+        if (tutPlayer.segments.length > 0) tutPlayer.segments.pop();
+    }
+
+    // Smooth turning
+    let angleDiff = tutPlayer.targetAngle - tutPlayer.angle;
+    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+    tutPlayer.angle += angleDiff * 0.12;
+
+    tutPlayer.wobble += dt * 5;
+    tutPlayer.tongue = (tutPlayer.tongue + dt * 8) % (Math.PI * 2);
+    tutPlayer.mouthOpen = Math.abs(Math.sin(tutPlayer.wobble * 2)) * 0.3;
+
+    const prevX = tutPlayer.head.x;
+    const prevY = tutPlayer.head.y;
+
+    const newX = tutPlayer.head.x + Math.cos(tutPlayer.angle) * tutPlayer.speed;
+    const newY = tutPlayer.head.y + Math.sin(tutPlayer.angle) * tutPlayer.speed;
+
+    const tw = tutCanvas.width, th = tutCanvas.height;
+    tutPlayer.segments.unshift({
+        x: Math.max(30, Math.min(tw - 30, newX)),
+        y: Math.max(30, Math.min(th - 30, newY))
+    });
+
+    if (newX < 30 || newX > tw - 30) tutPlayer.angle = Math.PI - tutPlayer.angle;
+    if (newY < 30 || newY > th - 30) tutPlayer.angle = -tutPlayer.angle;
+
+    while (tutPlayer.segments.length > tutPlayer.length) tutPlayer.segments.pop();
+
+    // Track movement for tutorial action
+    tutMoveDistance += Math.hypot(tutPlayer.head.x - prevX, tutPlayer.head.y - prevY);
+
+    // Update enemies
+    for (const e of tutEnemies) {
+        if (!e.alive) continue;
+        e.wobble += dt * 5;
+        e.tongue = (e.tongue + dt * 8) % (Math.PI * 2);
+        e.mouthOpen = Math.abs(Math.sin(e.wobble * 2)) * 0.3;
+
+        // Simple AI for tutorial
+        if (e.name === 'Lil Snek') {
+            // Run away slowly
+            const fleeDx = e.head.x - tutPlayer.head.x;
+            const fleeDy = e.head.y - tutPlayer.head.y;
+            e.targetAngle = Math.atan2(fleeDy, fleeDx);
+            e.speed = 1.5;
+        } else if (e.name === 'BIG BOI') {
+            // Chase player
+            const chaseDx = tutPlayer.head.x - e.head.x;
+            const chaseDy = tutPlayer.head.y - e.head.y;
+            e.targetAngle = Math.atan2(chaseDy, chaseDx);
+            e.speed = 2.2;
+        }
+
+        let aDiff = e.targetAngle - e.angle;
+        while (aDiff > Math.PI) aDiff -= Math.PI * 2;
+        while (aDiff < -Math.PI) aDiff += Math.PI * 2;
+        e.angle += aDiff * 0.08;
+
+        const enx = e.head.x + Math.cos(e.angle) * e.speed;
+        const eny = e.head.y + Math.sin(e.angle) * e.speed;
+        e.segments.unshift({
+            x: Math.max(30, Math.min(tw - 30, enx)),
+            y: Math.max(30, Math.min(th - 30, eny))
+        });
+        if (enx < 30 || enx > tw - 30) e.angle = Math.PI - e.angle;
+        if (eny < 30 || eny > th - 30) e.angle = -e.angle;
+        while (e.segments.length > e.length) e.segments.pop();
+    }
+
+    const step = TUTORIAL_STEPS[tutStep];
+
+    // Marshmallow collisions
+    for (let i = tutMarshmallows.length - 1; i >= 0; i--) {
+        const m = tutMarshmallows[i];
+        const d = Math.hypot(tutPlayer.head.x - m.x, tutPlayer.head.y - m.y);
+        if (d < tutPlayer.size + m.size) {
+            tutPlayer.length += 2;
+            tutMarshmallowsEaten++;
+            AudioSys.playCollect();
+            for (let j = 0; j < 8; j++) {
+                tutParticles.push(new Particle(m.x, m.y, m.golden ? '#ffd700' : '#fff', 3 + Math.random() * 4));
+            }
+            tutMarshmallows.splice(i, 1);
+            tutMarshmallows.push(new Marshmallow(
+                80 + Math.random() * (tw - 160),
+                80 + Math.random() * (th - 160)
+            ));
+        }
+    }
+
+    // Snake eating collisions in tutorial
+    for (const e of tutEnemies) {
+        if (!e.alive) continue;
+        const d = Math.hypot(tutPlayer.head.x - e.head.x, tutPlayer.head.y - e.head.y);
+        if (d < tutPlayer.size + e.size) {
+            if (tutPlayer.rankIndex > e.rankIndex) {
+                e.alive = false;
+                tutPlayer.length += Math.floor(e.length * 0.5);
+                tutAteCount++;
+                AudioSys.playChomp();
+                for (let j = 0; j < 20; j++) {
+                    tutParticles.push(new Particle(e.head.x, e.head.y, e.color1, 4 + Math.random() * 5));
+                }
+            }
+        }
+    }
+
+    // Check tutorial action completion
+    if (tutWaitingForAction && step.action) {
+        if (step.action === 'move' && tutMoveDistance > 300) {
+            completeTutAction();
+            tutMoveDistance = 0;
+        }
+        if (step.action === 'eat_marshmallow' && tutMarshmallowsEaten >= 3) {
+            completeTutAction();
+            tutMarshmallowsEaten = 0;
+        }
+        if (step.action === 'boost' && tutBoosting) {
+            tutBoostTime += dt;
+            if (tutBoostTime > 30) { // ~0.5s
+                completeTutAction();
+                tutBoostTime = 0;
+            }
+        }
+        if (step.action === 'eat_snake' && tutAteCount > 0) {
+            completeTutAction();
+        }
+        if (step.action === 'avoid') {
+            tutSurviveTime += dt;
+            document.getElementById('tutPrompt').textContent = `Stay alive! ${Math.max(0, 5 - Math.floor(tutSurviveTime / 60))}s left...`;
+            if (tutSurviveTime > 300) { // ~5 seconds
+                completeTutAction();
+                tutSurviveTime = 0;
+                // Remove the big scary one
+                tutEnemies = tutEnemies.filter(e => e.name !== 'BIG BOI');
+            }
+        }
+    }
+
+    // Particles
+    for (let i = tutParticles.length - 1; i >= 0; i--) {
+        tutParticles[i].update();
+        if (tutParticles[i].life <= 0) tutParticles.splice(i, 1);
+    }
+}
+
+function tutDraw() {
+    if (!tutCtx || !tutRunning) return;
+    const tw = tutCanvas.width, th = tutCanvas.height;
+    tutCtx.clearRect(0, 0, tw, th);
+
+    // Background
+    tutCtx.fillStyle = '#22c55e';
+    tutCtx.fillRect(0, 0, tw, th);
+
+    // Grid
+    tutCtx.strokeStyle = 'rgba(255,255,255,0.06)';
+    tutCtx.lineWidth = 1;
+    for (let x = 0; x < tw; x += 60) {
+        tutCtx.beginPath(); tutCtx.moveTo(x, 0); tutCtx.lineTo(x, th); tutCtx.stroke();
+    }
+    for (let y = 0; y < th; y += 60) {
+        tutCtx.beginPath(); tutCtx.moveTo(0, y); tutCtx.lineTo(tw, y); tutCtx.stroke();
+    }
+
+    // Border
+    tutCtx.strokeStyle = '#ffe44d';
+    tutCtx.lineWidth = 4;
+    tutCtx.setLineDash([15, 8]);
+    tutCtx.strokeRect(8, 8, tw - 16, th - 16);
+    tutCtx.setLineDash([]);
+
+    // Marshmallows
+    for (const m of tutMarshmallows) m.draw(tutCtx, tutTime);
+
+    // Enemies
+    for (const e of tutEnemies) {
+        if (e.alive) e.draw(tutCtx);
+    }
+
+    // Player
+    if (tutPlayer && tutPlayer.alive) tutPlayer.draw(tutCtx);
+
+    // Particles
+    for (const p of tutParticles) p.draw(tutCtx);
+
+    // If on boost step, show boost indicator
+    if (TUTORIAL_STEPS[tutStep]?.action === 'boost' && tutBoosting) {
+        tutCtx.fillStyle = 'rgba(255,228,77,0.3)';
+        tutCtx.beginPath();
+        tutCtx.arc(tutPlayer.head.x, tutPlayer.head.y, 40, 0, Math.PI * 2);
+        tutCtx.fill();
+    }
+}
+
+let tutLastTime = 0;
+function tutLoop(time) {
+    if (!tutRunning) return;
+    const dt = Math.min((time - tutLastTime) / 16.67, 3);
+    tutLastTime = time;
+    tutUpdate(dt);
+    tutDraw();
+    requestAnimationFrame(tutLoop);
+}
+
+// ===== GAME LOOP =====
+let lastTime = 0;
+function gameLoop(time) {
+    const dt = Math.min((time - lastTime) / 16.67, 3);
+    lastTime = time;
+    update(dt);
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>

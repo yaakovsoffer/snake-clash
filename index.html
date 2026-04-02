@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
 <title>SNAKE CLASH - Eat or Be Eaten!</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bungee+Shade&family=Bungee&family=Comic+Neue:wght@700&display=swap');
@@ -230,6 +233,166 @@ body {
     60% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
     100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5) translateY(-50px); }
 }
+/* ===== TOUCH / iPad STYLES ===== */
+html, body {
+    touch-action: none;
+    overscroll-behavior: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -webkit-text-size-adjust: none;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+}
+
+#joystickArea {
+    display: none;
+    position: fixed;
+    bottom: 30px;
+    left: 30px;
+    width: 180px;
+    height: 180px;
+    z-index: 80;
+    pointer-events: auto;
+}
+
+#joystickBase {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    border: 3px solid rgba(255,255,255,0.25);
+    backdrop-filter: blur(4px);
+}
+
+#joystickThumb {
+    position: absolute;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.35);
+    border: 3px solid rgba(255,255,255,0.5);
+    top: 55px;
+    left: 55px;
+    transition: none;
+}
+
+#boostBtn {
+    display: none;
+    position: fixed;
+    bottom: 50px;
+    right: 40px;
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    background: rgba(255,107,53,0.5);
+    border: 4px solid rgba(255,107,53,0.8);
+    backdrop-filter: blur(4px);
+    z-index: 80;
+    font-family: 'Bungee', cursive;
+    font-size: 16px;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.5);
+    cursor: pointer;
+    pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#boostBtn.active {
+    background: rgba(255,200,50,0.7);
+    border-color: #ffe44d;
+    transform: scale(0.92);
+    box-shadow: 0 0 30px rgba(255,200,50,0.5);
+}
+
+/* Touch-friendly button sizes */
+@media (pointer: coarse), (hover: none) {
+    .menu-btn {
+        font-size: 20px;
+        padding: 18px 45px;
+        min-height: 56px;
+        margin: 10px;
+    }
+
+    #startScreen h1 {
+        font-size: 52px;
+    }
+
+    #startScreen h2 {
+        font-size: 20px;
+    }
+
+    .world-card {
+        width: 170px;
+        height: 160px;
+    }
+
+    .world-grid {
+        gap: 14px;
+    }
+
+    #playerNameInput {
+        font-size: 22px !important;
+        padding: 14px 20px !important;
+        width: 300px !important;
+    }
+
+    #hud {
+        padding: 8px 12px;
+        gap: 6px;
+    }
+
+    .hud-box {
+        padding: 5px 10px;
+        font-size: 13px;
+        border-radius: 10px;
+    }
+
+    .hud-box .value {
+        font-size: 17px;
+    }
+
+    .hud-box .label {
+        font-size: 9px;
+    }
+
+    #minimap {
+        width: 110px;
+        height: 110px;
+        bottom: 200px;
+        right: 10px;
+    }
+
+    #deathScreen h1 {
+        font-size: 42px;
+    }
+
+    #deathScreen .stats {
+        font-size: 16px;
+    }
+
+    #tutTextBox {
+        padding: 14px 18px;
+    }
+
+    #tutTitle {
+        font-size: 18px;
+    }
+
+    #tutMessage {
+        font-size: 15px;
+    }
+
+    #tutCharacter {
+        font-size: 55px;
+    }
+
+    #levelUpBanner {
+        font-size: 42px;
+    }
+}
+
 /* ===== TUTORIAL STYLES ===== */
 #tutorialOverlay {
     position: fixed; inset: 0;
@@ -379,7 +542,7 @@ body {
     <h2 style="font-family:'Bungee',cursive;font-size:32px;color:#fff;margin:15px 0;text-shadow:2px 2px 0 rgba(0,0,0,0.4)">What's Your Name?</h2>
     <input id="playerNameInput" type="text" maxlength="15" placeholder="Enter your name..." style="font-family:'Bungee',cursive;font-size:28px;padding:14px 30px;border-radius:50px;border:4px solid #fff;background:rgba(0,0,0,0.3);color:#ffe44d;text-align:center;outline:none;width:350px;backdrop-filter:blur(5px)" />
     <button class="menu-btn play-btn" style="margin-top:20px" onclick="confirmName()">LET'S GO!</button>
-    <p style="font-family:'Comic Neue',cursive;color:rgba(255,255,255,0.6);margin-top:10px;font-size:16px">Use ARROW KEYS to move, SPACE to boost!</p>
+    <p id="controlHint" style="font-family:'Comic Neue',cursive;color:rgba(255,255,255,0.6);margin-top:10px;font-size:16px">Use ARROW KEYS to move, SPACE to boost!</p>
 </div>
 
 <!-- TUTORIAL OVERLAY -->
@@ -435,6 +598,15 @@ body {
 </div>
 
 <canvas id="minimap" width="160" height="160" style="display:none"></canvas>
+
+<!-- Touch Controls -->
+<div id="joystickArea">
+    <div id="joystickBase">
+        <div id="joystickThumb"></div>
+    </div>
+</div>
+<button id="boostBtn">BOOST</button>
+
 <div id="levelUpBanner">RANK UP!</div>
 
 <div id="deathScreen">
@@ -525,8 +697,30 @@ let rainbowActive = false;
 let rainbowTimer = 0;
 const RAINBOW_DURATION = 480; // ~8 seconds at 60fps
 
-// ===== INPUT (Arrow Keys) =====
+// ===== INPUT SYSTEM =====
 const keys = { up: false, down: false, left: false, right: false, space: false };
+let boosting = false;
+let isTouchDevice = false;
+let touchAngle = null; // null = no touch input
+let touchActive = false;
+
+// Detect touch
+function detectTouch() {
+    isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    if (isTouchDevice) {
+        document.body.classList.add('touch-device');
+    }
+}
+detectTouch();
+
+// Show/hide touch controls
+function showTouchControls(show) {
+    if (!isTouchDevice) return;
+    document.getElementById('joystickArea').style.display = show ? 'block' : 'none';
+    document.getElementById('boostBtn').style.display = show ? 'flex' : 'none';
+}
+
+// Keyboard input
 document.addEventListener('keydown', e => {
     if (e.key === 'ArrowUp' || e.key === 'w') keys.up = true;
     if (e.key === 'ArrowDown' || e.key === 's') keys.down = true;
@@ -543,17 +737,126 @@ document.addEventListener('keyup', e => {
     if (e.key === ' ') keys.space = false;
 });
 
-// Also keep mouse as fallback
-let boosting = false;
+// Mouse fallback
 canvas.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
 canvas.addEventListener('mousedown', () => boosting = true);
 canvas.addEventListener('mouseup', () => boosting = false);
+
+// ===== VIRTUAL JOYSTICK =====
+const joystickArea = document.getElementById('joystickArea');
+const joystickBase = document.getElementById('joystickBase');
+const joystickThumb = document.getElementById('joystickThumb');
+const boostBtn = document.getElementById('boostBtn');
+
+let joystickTouchId = null;
+let boostTouchId = null;
+const joystickCenter = { x: 90, y: 90 }; // center of 180x180 base
+const joystickMaxDist = 55;
+const joystickDeadzone = 10;
+
+joystickArea.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const touch = e.changedTouches[0];
+    joystickTouchId = touch.identifier;
+    updateJoystick(touch);
+}, { passive: false });
+
+joystickArea.addEventListener('touchmove', e => {
+    e.preventDefault();
+    for (const touch of e.changedTouches) {
+        if (touch.identifier === joystickTouchId) {
+            updateJoystick(touch);
+        }
+    }
+}, { passive: false });
+
+joystickArea.addEventListener('touchend', e => {
+    for (const touch of e.changedTouches) {
+        if (touch.identifier === joystickTouchId) {
+            joystickTouchId = null;
+            touchAngle = null;
+            touchActive = false;
+            joystickThumb.style.left = '55px';
+            joystickThumb.style.top = '55px';
+        }
+    }
+});
+
+joystickArea.addEventListener('touchcancel', e => {
+    joystickTouchId = null;
+    touchAngle = null;
+    touchActive = false;
+    joystickThumb.style.left = '55px';
+    joystickThumb.style.top = '55px';
+});
+
+function updateJoystick(touch) {
+    const rect = joystickBase.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    let dx = touch.clientX - cx;
+    let dy = touch.clientY - cy;
+    const d = Math.hypot(dx, dy);
+
+    if (d > joystickDeadzone) {
+        touchActive = true;
+        touchAngle = Math.atan2(dy, dx);
+    } else {
+        touchActive = false;
+        touchAngle = null;
+    }
+
+    // Clamp thumb position
+    if (d > joystickMaxDist) {
+        dx = (dx / d) * joystickMaxDist;
+        dy = (dy / d) * joystickMaxDist;
+    }
+
+    joystickThumb.style.left = (joystickCenter.x - 35 + dx) + 'px';
+    joystickThumb.style.top = (joystickCenter.y - 35 + dy) + 'px';
+}
+
+// Boost button touch
+boostBtn.addEventListener('touchstart', e => {
+    e.preventDefault();
+    boostTouchId = e.changedTouches[0].identifier;
+    boosting = true;
+    boostBtn.classList.add('active');
+}, { passive: false });
+
+boostBtn.addEventListener('touchend', e => {
+    for (const touch of e.changedTouches) {
+        if (touch.identifier === boostTouchId) {
+            boostTouchId = null;
+            boosting = false;
+            boostBtn.classList.remove('active');
+        }
+    }
+});
+
+boostBtn.addEventListener('touchcancel', () => {
+    boostTouchId = null;
+    boosting = false;
+    boostBtn.classList.remove('active');
+});
+
+// Prevent default touch behaviors on canvas (no scrolling/zooming)
+canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('gesturechange', e => e.preventDefault());
+document.addEventListener('gestureend', e => e.preventDefault());
 
 // ===== NAME INPUT =====
 function showNameInput() {
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('nameScreen').style.display = 'flex';
     document.getElementById('playerNameInput').value = playerName === 'YOU' ? '' : playerName;
+    // Update hint for touch vs keyboard
+    const hint = document.getElementById('controlHint');
+    if (isTouchDevice) {
+        hint.textContent = 'Use the JOYSTICK to move, tap BOOST to speed up!';
+    }
     setTimeout(() => document.getElementById('playerNameInput').focus(), 100);
 }
 
@@ -758,16 +1061,21 @@ class Snake {
         this.tongue = (this.tongue + dt * 8) % (Math.PI * 2);
 
         if (this.isPlayer) {
+            // Touch joystick input (priority)
+            if (touchActive && touchAngle !== null) {
+                this.targetAngle = touchAngle;
+            }
             // Arrow key / WASD controls
-            if (keys.up) this.targetAngle = -Math.PI / 2;
-            if (keys.down) this.targetAngle = Math.PI / 2;
-            if (keys.left) this.targetAngle = Math.PI;
-            if (keys.right) this.targetAngle = 0;
-            // Diagonal
-            if (keys.up && keys.right) this.targetAngle = -Math.PI / 4;
-            if (keys.up && keys.left) this.targetAngle = -3 * Math.PI / 4;
-            if (keys.down && keys.right) this.targetAngle = Math.PI / 4;
-            if (keys.down && keys.left) this.targetAngle = 3 * Math.PI / 4;
+            else if (keys.up || keys.down || keys.left || keys.right) {
+                if (keys.up) this.targetAngle = -Math.PI / 2;
+                if (keys.down) this.targetAngle = Math.PI / 2;
+                if (keys.left) this.targetAngle = Math.PI;
+                if (keys.right) this.targetAngle = 0;
+                if (keys.up && keys.right) this.targetAngle = -Math.PI / 4;
+                if (keys.up && keys.left) this.targetAngle = -3 * Math.PI / 4;
+                if (keys.down && keys.right) this.targetAngle = Math.PI / 4;
+                if (keys.down && keys.left) this.targetAngle = 3 * Math.PI / 4;
+            }
             const isBoosting = (keys.space || boosting) && this.length > 8;
             this.speed = isBoosting ? 4 : this.baseSpeed;
             if (isBoosting && Math.random() < 0.02) AudioSys.playBoost();
@@ -1243,6 +1551,7 @@ function startGame(worldIndex) {
 
     updateHUD();
     gameRunning = true;
+    showTouchControls(true);
 }
 
 function createSafeMarshmallow() {
@@ -1287,6 +1596,7 @@ function backToMenu() {
     document.getElementById('hud').style.display = 'none';
     document.getElementById('minimap').style.display = 'none';
     document.getElementById('startScreen').style.display = 'flex';
+    showTouchControls(false);
 }
 
 // ===== UPDATE =====
@@ -1460,6 +1770,7 @@ function update(dt) {
 function playerDeath(killer) {
     player.alive = false;
     gameRunning = false;
+    showTouchControls(false);
     spawnParticles(player.head.x, player.head.y, '#00ff88', 30);
     AudioSys.playDeath();
 

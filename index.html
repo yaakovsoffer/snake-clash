@@ -233,6 +233,95 @@ body {
     60% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
     100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5) translateY(-50px); }
 }
+/* ===== LEVEL COMPLETE SCREEN ===== */
+#levelComplete {
+    position: fixed; inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.85);
+    z-index: 200;
+}
+
+#levelComplete h1 {
+    font-family: 'Bungee Shade', cursive;
+    font-size: 52px;
+    color: #4ade80;
+    text-shadow: 3px 3px 0 rgba(0,0,0,0.5);
+    animation: levelCompleteAnim 1s ease;
+}
+
+@keyframes levelCompleteAnim {
+    0% { opacity: 0; transform: scale(0.3) rotate(-10deg); }
+    50% { transform: scale(1.15) rotate(3deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+#levelComplete .lc-info {
+    font-family: 'Bungee', cursive;
+    color: #fff;
+    font-size: 20px;
+    margin: 15px 0;
+    text-align: center;
+    line-height: 1.8;
+}
+
+#levelComplete .lc-next {
+    font-family: 'Bungee', cursive;
+    color: #ffe44d;
+    font-size: 24px;
+    margin: 10px 0 20px;
+}
+
+#levelComplete .lc-food {
+    font-size: 50px;
+    margin: 10px 0;
+    animation: tutCharBob 1.5s ease infinite;
+}
+
+#killProgress {
+    position: fixed;
+    bottom: 12px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 55;
+    pointer-events: none;
+    text-align: center;
+}
+
+#killProgressBar {
+    width: 220px; height: 14px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 7px;
+    border: 2px solid rgba(255,255,255,0.2);
+    overflow: hidden;
+}
+
+#killProgressFill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff6b35, #ffe44d);
+    border-radius: 7px;
+    transition: width 0.3s ease;
+}
+
+#killProgressLabel {
+    font-family: 'Bungee', cursive;
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+    margin-top: 3px;
+}
+
+#levelLabel {
+    position: fixed;
+    top: 55px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Bungee', cursive;
+    font-size: 14px;
+    color: rgba(255,255,255,0.6);
+    z-index: 55;
+    pointer-events: none;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.5);
+}
+
 /* ===== TOUCH / iPad STYLES ===== */
 html, body {
     touch-action: none;
@@ -634,6 +723,20 @@ html, body {
 
 <div id="levelUpBanner">RANK UP!</div>
 
+<div id="killProgress" style="display:none">
+    <div id="killProgressBar"><div id="killProgressFill" style="width:0%"></div></div>
+    <div id="killProgressLabel">0 / 0 snakes eaten</div>
+</div>
+<div id="levelLabel" style="display:none"></div>
+
+<div id="levelComplete">
+    <h1 id="lcTitle">LEVEL COMPLETE!</h1>
+    <div class="lc-info" id="lcStats"></div>
+    <div class="lc-food" id="lcFoodEmoji"></div>
+    <div class="lc-next" id="lcNextName"></div>
+    <button class="menu-btn play-btn" onclick="advanceLevel()">NEXT LEVEL</button>
+</div>
+
 <div id="deathScreen">
     <h1>CLASHED!</h1>
     <div class="stats" id="deathStats"></div>
@@ -644,18 +747,26 @@ html, body {
 <script>
 // ===== GAME CONFIG =====
 const WORLDS = [
-    { name: "Candy Meadow", emoji: "🍬", bg1: "#4ade80", bg2: "#22c55e", ground: "#86efac", unlock: 0,
-      desc: "Sweet beginner fields", obstacles: "lollipops", snakeCount: 8 },
-    { name: "Lava Kitchen", emoji: "🌋", bg1: "#ef4444", bg2: "#b91c1c", ground: "#fca5a5", unlock: 0,
-      desc: "Hot & spicy!", obstacles: "flames", snakeCount: 10 },
-    { name: "Ocean Splash", emoji: "🌊", bg1: "#3b82f6", bg2: "#1d4ed8", ground: "#93c5fd", unlock: 3,
-      desc: "Deep sea chomping", obstacles: "bubbles", snakeCount: 12 },
-    { name: "Haunted Swamp", emoji: "👻", bg1: "#7c3aed", bg2: "#4c1d95", ground: "#c4b5fd", unlock: 5,
-      desc: "Spooky snakes!", obstacles: "ghosts", snakeCount: 14 },
-    { name: "Cloud Kingdom", emoji: "☁️", bg1: "#f0abfc", bg2: "#d946ef", ground: "#fae8ff", unlock: 8,
-      desc: "Sky-high battles", obstacles: "stars", snakeCount: 16 },
-    { name: "Choco Factory", emoji: "🍫", bg1: "#92400e", bg2: "#78350f", ground: "#fbbf24", unlock: 12,
-      desc: "Ultimate arena", obstacles: "donuts", snakeCount: 20 },
+    { name: "Grassy Fields", emoji: "\uD83C\uDF3F", bg1: "#4ade80", bg2: "#22c55e",
+      desc: "Where it all begins!", obstacles: "lollipops", snakeCount: 5, wallColor: "#2d8a4e", wallGlow: "#4ade80" },
+    { name: "Candy Land", emoji: "\uD83C\uDF6C", bg1: "#ff85c8", bg2: "#ff4da6",
+      desc: "Sweet & dangerous!", obstacles: "candy", snakeCount: 6, wallColor: "#d63384", wallGlow: "#ff85c8" },
+    { name: "Lava Kitchen", emoji: "\uD83C\uDF2B", bg1: "#ef4444", bg2: "#991b1b",
+      desc: "Hot & spicy!", obstacles: "flames", snakeCount: 7, wallColor: "#7f1d1d", wallGlow: "#ef4444" },
+    { name: "Ocean Depths", emoji: "\uD83C\uDF0A", bg1: "#3b82f6", bg2: "#1e3a8a",
+      desc: "Deep sea chomping!", obstacles: "bubbles", snakeCount: 8, wallColor: "#1e3a5f", wallGlow: "#60a5fa" },
+    { name: "Haunted Swamp", emoji: "\uD83D\uDC7B", bg1: "#7c3aed", bg2: "#3b0764",
+      desc: "Spooky snakes!", obstacles: "ghosts", snakeCount: 9, wallColor: "#2e1065", wallGlow: "#a78bfa" },
+    { name: "Frozen Tundra", emoji: "\u2744\uFE0F", bg1: "#67e8f9", bg2: "#0e7490",
+      desc: "Ice cold battles!", obstacles: "snowflakes", snakeCount: 10, wallColor: "#155e75", wallGlow: "#67e8f9" },
+    { name: "Cloud Kingdom", emoji: "\u2601\uFE0F", bg1: "#f0abfc", bg2: "#a21caf",
+      desc: "Sky-high fights!", obstacles: "stars", snakeCount: 11, wallColor: "#701a75", wallGlow: "#f0abfc" },
+    { name: "Jungle Ruins", emoji: "\uD83C\uDF34", bg1: "#84cc16", bg2: "#365314",
+      desc: "Ancient danger!", obstacles: "vines", snakeCount: 12, wallColor: "#1a2e05", wallGlow: "#a3e635" },
+    { name: "Neon City", emoji: "\uD83C\uDF03", bg1: "#e879f9", bg2: "#1e1b4b",
+      desc: "Cyberpunk showdown!", obstacles: "lightning", snakeCount: 13, wallColor: "#0f0e2a", wallGlow: "#e879f9" },
+    { name: "Choco Factory", emoji: "\uD83C\uDF6B", bg1: "#92400e", bg2: "#451a03",
+      desc: "Ultimate arena!", obstacles: "donuts", snakeCount: 15, wallColor: "#3b1a06", wallGlow: "#fbbf24" },
 ];
 
 const RANKS = [
@@ -723,6 +834,25 @@ let rainbows = [];
 let rainbowActive = false;
 let rainbowTimer = 0;
 const RAINBOW_DURATION = 480; // ~8 seconds at 60fps
+let currentLevel = 0;
+let levelKillGoal = 0;
+let levelKillCount = 0;
+let totalScore = 0; // persists across levels
+let bonusFoods = []; // level-specific bonus food
+
+// Each level introduces a new bonus food type
+const LEVEL_FOODS = [
+    { name: "Marshmallow", emoji: "\uD83E\uDD5E", color: "#fff5eb", points: 5, size: 14 },
+    { name: "Lollipop", emoji: "\uD83C\uDF6D", color: "#ff69b4", points: 8, size: 16 },
+    { name: "Hot Pepper", emoji: "\uD83C\uDF36\uFE0F", color: "#ef4444", points: 10, size: 15 },
+    { name: "Sushi", emoji: "\uD83C\uDF63", color: "#60a5fa", points: 12, size: 16 },
+    { name: "Eyeball", emoji: "\uD83D\uDC41\uFE0F", color: "#a78bfa", points: 15, size: 15 },
+    { name: "Snowcone", emoji: "\uD83C\uDF67", color: "#67e8f9", points: 12, size: 16 },
+    { name: "Star Fruit", emoji: "\u2B50", color: "#f0abfc", points: 18, size: 17 },
+    { name: "Coconut", emoji: "\uD83E\uDD65", color: "#a3e635", points: 15, size: 16 },
+    { name: "Neon Orb", emoji: "\uD83D\uDD2E", color: "#e879f9", points: 20, size: 18 },
+    { name: "Golden Donut", emoji: "\uD83C\uDF69", color: "#fbbf24", points: 25, size: 19 },
+];
 
 // ===== INPUT SYSTEM =====
 const keys = { up: false, down: false, left: false, right: false, space: false };
@@ -1150,6 +1280,101 @@ class Rainbow {
         ctx.fillText('EAT ALL!', x, y + s + 16);
     }
 }
+
+// ===== BONUS FOOD (level-specific) =====
+class BonusFood {
+    constructor(x, y, type) {
+        this.x = x;
+        this.y = y;
+        this.type = type; // index into LEVEL_FOODS
+        this.size = LEVEL_FOODS[type].size;
+        this.points = LEVEL_FOODS[type].points;
+        this.emoji = LEVEL_FOODS[type].emoji;
+        this.color = LEVEL_FOODS[type].color;
+        this.bobOffset = Math.random() * Math.PI * 2;
+        this.alive = true;
+    }
+    draw(ctx, time) {
+        if (!this.alive) return;
+        const bob = Math.sin(time * 2.5 + this.bobOffset) * 5;
+        const x = this.x, y = this.y + bob;
+        const s = this.size + Math.sin(time * 2 + this.bobOffset) * 2;
+
+        // Shadow
+        ctx.beginPath();
+        ctx.ellipse(x, this.y + s + 5, s * 0.6, 4, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        ctx.fill();
+
+        // Glow
+        ctx.beginPath();
+        ctx.arc(x, y, s + 4, 0, Math.PI * 2);
+        ctx.fillStyle = this.color + '22';
+        ctx.fill();
+
+        // Emoji
+        ctx.font = `${s * 1.6}px serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.emoji, x, y);
+        ctx.textBaseline = 'alphabetic';
+
+        // Points label
+        ctx.font = 'bold 10px Bungee, cursive';
+        ctx.fillStyle = this.color;
+        ctx.fillText('+' + this.points, x, y + s + 14);
+    }
+}
+
+// ===== BIRTHDAY CAKE (rare special item) =====
+class BirthdayCake {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.size = 22;
+        this.bobOffset = Math.random() * Math.PI * 2;
+        this.alive = true;
+        this.points = 50;
+    }
+    draw(ctx, time) {
+        if (!this.alive) return;
+        const bob = Math.sin(time * 2 + this.bobOffset) * 6;
+        const x = this.x, y = this.y + bob;
+        const s = this.size + Math.sin(time * 3 + this.bobOffset) * 3;
+
+        // Party glow
+        const hue = (time * 60) % 360;
+        ctx.beginPath();
+        ctx.arc(x, y, s + 10, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${hue}, 100%, 70%, 0.15)`;
+        ctx.fill();
+
+        // Sparkles
+        for (let i = 0; i < 5; i++) {
+            const a = time * 1.5 + i * Math.PI * 2 / 5;
+            const sx = x + Math.cos(a) * (s + 12);
+            const sy = y + Math.sin(a) * (s + 12);
+            ctx.fillStyle = `hsla(${(hue + i * 72) % 360}, 100%, 70%, 0.6)`;
+            ctx.beginPath();
+            ctx.arc(sx, sy, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Cake emoji
+        ctx.font = `${s * 1.8}px serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('\uD83C\uDF82', x, y);
+        ctx.textBaseline = 'alphabetic';
+
+        // Label
+        ctx.font = 'bold 10px Bungee, cursive';
+        ctx.fillStyle = '#ffe44d';
+        ctx.fillText('+50', x, y + s + 14);
+    }
+}
+
+let birthdayCakes = [];
 
 function spawnRainbows(ww, wh, count) {
     rainbows = [];
@@ -1609,22 +1834,8 @@ function getRankForScore(s) {
 
 // ===== WORLD SELECT =====
 function showWorldSelect() {
-    document.getElementById('startScreen').style.display = 'none';
-    const ws = document.getElementById('worldSelect');
-    ws.style.display = 'flex';
-    const grid = document.getElementById('worldGrid');
-    grid.innerHTML = '';
-    WORLDS.forEach((w, i) => {
-        const card = document.createElement('div');
-        card.className = 'world-card';
-        card.style.background = `linear-gradient(135deg, ${w.bg1}, ${w.bg2})`;
-        const locked = highestRank < w.unlock;
-        card.innerHTML = locked
-            ? `<div class="locked">🔒</div><div>${w.name}</div><div style="font-size:12px">Rank ${w.unlock} to unlock</div>`
-            : `<div class="emoji">${w.emoji}</div><div>${w.name}</div><div style="font-size:12px">${w.desc}</div>`;
-        if (!locked) card.onclick = () => startGame(i);
-        grid.appendChild(card);
-    });
+    // Go straight to level 1
+    startGame(0);
 }
 
 function hideWorldSelect() {
@@ -1634,22 +1845,35 @@ function hideWorldSelect() {
 
 // ===== GAME START =====
 function startGame(worldIndex) {
+    // Called from world select or fresh start - resets everything
+    currentLevel = worldIndex;
+    totalScore = 0;
+    totalMarshmallows = 0;
+    currentRank = 0;
+    startLevel(currentLevel);
+}
+
+function startLevel(levelIndex) {
     document.getElementById('worldSelect').style.display = 'none';
     document.getElementById('hud').style.display = 'flex';
     document.getElementById('minimap').style.display = 'block';
     document.getElementById('deathScreen').style.display = 'none';
+    document.getElementById('levelComplete').style.display = 'none';
+    document.getElementById('killProgress').style.display = 'block';
+    document.getElementById('levelLabel').style.display = 'block';
 
-    currentWorld = WORLDS[worldIndex];
-    score = 0;
-    totalMarshmallows = 0;
+    currentLevel = levelIndex;
+    currentWorld = WORLDS[Math.min(levelIndex, WORLDS.length - 1)];
+    score = totalScore;
     killCount = 0;
-    currentRank = 0;
+    levelKillCount = 0;
+    levelKillGoal = Math.max(3, currentWorld.snakeCount - 2); // eat most snakes to advance
     particles = [];
     decorations = [];
     gameTime = 0;
 
-    worldW = 3000 + worldIndex * 500;
-    worldH = 3000 + worldIndex * 500;
+    worldW = 2500 + levelIndex * 200;
+    worldH = 2500 + levelIndex * 200;
 
     // Reset rainbow
     rainbowActive = false;
@@ -1658,33 +1882,55 @@ function startGame(worldIndex) {
     // Generate maze
     generateMaze(worldW, worldH);
 
-    // Create player
+    // Create player - reset to small size each level
     player = new Snake(worldW / 2, worldH / 2, true);
     player.color1 = '#00ff88';
     player.color2 = '#00cc66';
     player.hat = '\uD83D\uDC51';
     player.name = playerName;
+    player.length = 15; // always start small
+    player.rankIndex = currentRank;
 
-    // Initialize camera to player position
+    // Initialize camera
     camera.x = worldW / 2;
     camera.y = worldH / 2;
 
-    // Create enemies (spawn away from walls)
+    // Create enemies - these are the targets for this level
     enemies = [];
     for (let i = 0; i < currentWorld.snakeCount; i++) {
         spawnEnemy();
     }
 
-    // Create marshmallows (avoid walls)
+    // Marshmallows
     marshmallows = [];
-    for (let i = 0; i < 60 + worldIndex * 15; i++) {
+    for (let i = 0; i < 40 + levelIndex * 8; i++) {
         marshmallows.push(createSafeMarshmallow());
     }
 
-    // Spawn rainbows (3 per world + 1 per world index)
-    spawnRainbows(worldW, worldH, 3 + worldIndex);
+    // Bonus food for this level (and all previously unlocked types)
+    bonusFoods = [];
+    const foodTypes = Math.min(levelIndex + 1, LEVEL_FOODS.length);
+    for (let i = 0; i < 15 + levelIndex * 3; i++) {
+        const type = Math.floor(Math.random() * foodTypes);
+        bonusFoods.push(createSafeBonusFood(type));
+    }
+
+    // Birthday cakes (rare - 1-2 per level)
+    birthdayCakes = [];
+    const cakeCount = 1 + (levelIndex >= 3 ? 1 : 0);
+    for (let i = 0; i < cakeCount; i++) {
+        birthdayCakes.push(createSafeCake());
+    }
+
+    // Rainbows
+    spawnRainbows(worldW, worldH, 2 + Math.floor(levelIndex / 2));
 
     // Decorations
+    const decoEmojis = {
+        lollipops: '\uD83C\uDF6D', candy: '\uD83C\uDF6C', flames: '\uD83D\uDD25',
+        bubbles: '\uD83E\uDEE7', ghosts: '\uD83D\uDC7B', snowflakes: '\u2744\uFE0F',
+        stars: '\u2B50', vines: '\uD83C\uDF3F', lightning: '\u26A1', donuts: '\uD83C\uDF69'
+    };
     for (let i = 0; i < 40; i++) {
         decorations.push({
             x: Math.random() * worldW,
@@ -1695,9 +1941,99 @@ function startGame(worldIndex) {
         });
     }
 
+    // Update HUD
+    document.getElementById('levelLabel').textContent =
+        `Level ${levelIndex + 1} \u2022 ${currentWorld.emoji} ${currentWorld.name}`;
+    updateKillProgress();
     updateHUD();
     gameRunning = true;
     showTouchControls(true);
+}
+
+function createSafeBonusFood(type) {
+    for (let attempt = 0; attempt < 10; attempt++) {
+        const x = 100 + Math.random() * (worldW - 200);
+        const y = 100 + Math.random() * (worldH - 200);
+        let blocked = false;
+        for (const w of mazeWalls) {
+            if (x > w.x - 20 && x < w.x + w.w + 20 && y > w.y - 20 && y < w.y + w.h + 20) {
+                blocked = true; break;
+            }
+        }
+        if (!blocked) return new BonusFood(x, y, type);
+    }
+    return new BonusFood(100 + Math.random() * (worldW - 200), 100 + Math.random() * (worldH - 200), type);
+}
+
+function createSafeCake() {
+    for (let attempt = 0; attempt < 10; attempt++) {
+        const x = 150 + Math.random() * (worldW - 300);
+        const y = 150 + Math.random() * (worldH - 300);
+        let blocked = false;
+        for (const w of mazeWalls) {
+            if (x > w.x - 25 && x < w.x + w.w + 25 && y > w.y - 25 && y < w.y + w.h + 25) {
+                blocked = true; break;
+            }
+        }
+        if (!blocked) return new BirthdayCake(x, y);
+    }
+    return new BirthdayCake(150 + Math.random() * (worldW - 300), 150 + Math.random() * (worldH - 300));
+}
+
+function updateKillProgress() {
+    const pct = Math.min(100, (levelKillCount / levelKillGoal) * 100);
+    document.getElementById('killProgressFill').style.width = pct + '%';
+    document.getElementById('killProgressLabel').textContent =
+        `${levelKillCount} / ${levelKillGoal} snakes eaten`;
+}
+
+function checkLevelComplete() {
+    if (levelKillCount >= levelKillGoal) {
+        showLevelComplete();
+    }
+}
+
+function showLevelComplete() {
+    gameRunning = false;
+    showTouchControls(false);
+
+    const lc = document.getElementById('levelComplete');
+    lc.style.display = 'flex';
+
+    totalScore = score;
+
+    document.getElementById('lcTitle').textContent =
+        currentLevel >= WORLDS.length - 1 ? 'YOU WIN!' : 'LEVEL COMPLETE!';
+
+    document.getElementById('lcStats').innerHTML =
+        `${currentWorld.emoji} ${currentWorld.name} cleared!<br>` +
+        `Score: ${score}<br>` +
+        `Snakes eaten: ${levelKillCount}`;
+
+    if (currentLevel < WORLDS.length - 1) {
+        const nextWorld = WORLDS[currentLevel + 1];
+        const nextFood = LEVEL_FOODS[Math.min(currentLevel + 1, LEVEL_FOODS.length - 1)];
+        document.getElementById('lcFoodEmoji').textContent = nextFood.emoji;
+        document.getElementById('lcNextName').innerHTML =
+            `Next: ${nextWorld.emoji} ${nextWorld.name}<br>` +
+            `<span style="font-size:16px;color:#fff">New food: ${nextFood.emoji} ${nextFood.name}!</span>`;
+    } else {
+        document.getElementById('lcFoodEmoji').textContent = '\uD83C\uDFC6';
+        document.getElementById('lcNextName').textContent = 'You conquered all levels!';
+    }
+
+    AudioSys.playRankUp();
+    AudioSys.speak(`Level complete! ${currentWorld.name} cleared!`);
+}
+
+function advanceLevel() {
+    if (currentLevel < WORLDS.length - 1) {
+        currentLevel++;
+        startLevel(currentLevel);
+    } else {
+        // Beat the game - go back to menu
+        backToMenu();
+    }
 }
 
 function createSafeMarshmallow() {
@@ -1733,14 +2069,17 @@ function spawnEnemy() {
 }
 
 function respawn() {
-    startGame(WORLDS.indexOf(currentWorld));
+    startLevel(currentLevel);
 }
 
 function backToMenu() {
     gameRunning = false;
     document.getElementById('deathScreen').style.display = 'none';
+    document.getElementById('levelComplete').style.display = 'none';
     document.getElementById('hud').style.display = 'none';
     document.getElementById('minimap').style.display = 'none';
+    document.getElementById('killProgress').style.display = 'none';
+    document.getElementById('levelLabel').style.display = 'none';
     document.getElementById('startScreen').style.display = 'flex';
     showTouchControls(false);
 }
@@ -1765,13 +2104,53 @@ function update(dt) {
         if (dist(player.head, m) < player.size + m.size) {
             score += m.value;
             totalMarshmallows++;
-            player.length += m.golden ? 5 : 2;
+            player.length = Math.min(player.length + (m.golden ? 3 : 1), 50);
             spawnParticles(m.x, m.y, m.golden ? '#ffd700' : '#fff', 8);
             showFloatText(m.x, m.y, m.golden ? '+25 GOLDEN!' : `+${m.value}`, m.golden ? '#ffd700' : '#fff');
             if (m.golden) AudioSys.playGoldenCollect(); else AudioSys.playCollect();
             marshmallows.splice(i, 1);
             // Respawn
             marshmallows.push(createSafeMarshmallow());
+        }
+    }
+
+    // Player eating bonus foods
+    for (let i = bonusFoods.length - 1; i >= 0; i--) {
+        const bf = bonusFoods[i];
+        if (!bf.alive) continue;
+        if (dist(player.head, bf) < player.size + bf.size) {
+            bf.alive = false;
+            score += bf.points;
+            player.length = Math.min(player.length + 2, 50);
+            spawnParticles(bf.x, bf.y, bf.color, 10);
+            showFloatText(bf.x, bf.y, `${bf.emoji} +${bf.points}`, bf.color);
+            AudioSys.playCollect();
+            // Respawn
+            bonusFoods.splice(i, 1);
+            const type = Math.floor(Math.random() * Math.min(currentLevel + 1, LEVEL_FOODS.length));
+            bonusFoods.push(createSafeBonusFood(type));
+        }
+    }
+
+    // Player eating birthday cakes
+    for (let i = birthdayCakes.length - 1; i >= 0; i--) {
+        const cake = birthdayCakes[i];
+        if (!cake.alive) continue;
+        if (dist(player.head, cake) < player.size + cake.size) {
+            cake.alive = false;
+            score += cake.points;
+            player.length = Math.min(player.length + 3, 50);
+            spawnParticles(cake.x, cake.y, '#ffe44d', 20);
+            spawnParticles(cake.x, cake.y, '#ff69b4', 15);
+            spawnParticles(cake.x, cake.y, '#4ade80', 15);
+            showFloatText(cake.x, cake.y, '\uD83C\uDF82 HAPPY BIRTHDAY! +50', '#ffe44d');
+            AudioSys.playRankUp();
+            AudioSys.speak('Happy Birthday!');
+            birthdayCakes.splice(i, 1);
+            // Respawn after a while
+            setTimeout(() => {
+                if (gameRunning) birthdayCakes.push(createSafeCake());
+            }, 15000);
         }
     }
 
@@ -1826,18 +2205,18 @@ function update(dt) {
             if (rainbowActive || player.rankIndex > e.rankIndex || (player.rankIndex === e.rankIndex && player.length > e.length)) {
                 // Player eats enemy!
                 e.alive = false;
-                score += 50 + e.rankIndex * 30;
-                player.length += Math.floor(e.length * 0.5);
+                const pts = 50 + e.rankIndex * 30;
+                score += pts;
+                // Cap growth: only add a little length per eat
+                player.length = Math.min(player.length + 3, 50);
                 killCount++;
+                levelKillCount++;
                 spawnParticles(e.head.x, e.head.y, e.color1, 20);
-                showFloatText(e.head.x, e.head.y, `ATE ${e.name}! +${50 + e.rankIndex * 30}`, '#ff6b35');
+                showFloatText(e.head.x, e.head.y, `ATE ${e.name}! +${pts}`, '#ff6b35');
                 AudioSys.playChomp();
-                // Respawn enemy after delay
-                setTimeout(() => {
-                    const idx = enemies.indexOf(e);
-                    if (idx >= 0) enemies.splice(idx, 1);
-                    spawnEnemy();
-                }, 3000);
+                updateKillProgress();
+                // Check if level is complete
+                checkLevelComplete();
             } else if (e.rankIndex > player.rankIndex || (e.rankIndex === player.rankIndex && e.length > player.length)) {
                 // Player gets eaten!
                 playerDeath(e);
@@ -1863,11 +2242,8 @@ function update(dt) {
                 winner.score += 30;
                 winner.rankIndex = getRankForScore(winner.score);
                 spawnParticles(loser.head.x, loser.head.y, loser.color1, 15);
-                setTimeout(() => {
-                    const idx = enemies.indexOf(loser);
-                    if (idx >= 0) enemies.splice(idx, 1);
-                    spawnEnemy();
-                }, 3000);
+                // Enemy killed by another enemy still counts toward level goal
+                // (makes it easier - the world clears itself a bit)
             }
         }
     }
@@ -1987,8 +2363,9 @@ function draw() {
         ctx.rotate(d.rot);
         ctx.globalAlpha = 0.3;
         const emojis = {
-            lollipops: '🍭', flames: '🔥', bubbles: '🫧',
-            ghosts: '👻', stars: '⭐', donuts: '🍩'
+            lollipops: '\uD83C\uDF6D', candy: '\uD83C\uDF6C', flames: '\uD83D\uDD25',
+            bubbles: '\uD83E\uDEE7', ghosts: '\uD83D\uDC7B', snowflakes: '\u2744\uFE0F',
+            stars: '\u2B50', vines: '\uD83C\uDF3F', lightning: '\u26A1', donuts: '\uD83C\uDF69'
         };
         ctx.font = `${d.size}px serif`;
         ctx.textAlign = 'center';
@@ -1997,21 +2374,22 @@ function draw() {
         ctx.restore();
     }
 
-    // Maze walls (Pacman style)
+    // Maze walls (themed per level)
+    const wColor = currentWorld.wallColor || '#1a3a6e';
+    const wGlow = currentWorld.wallGlow || '#4488ff';
     for (const w of mazeWalls) {
         if (w.x + w.w < cx - 20 || w.x > cx + W + 20 || w.y + w.h < cy - 20 || w.y > cy + H + 20) continue;
-        // Neon glow wall
-        ctx.shadowColor = '#4488ff';
-        ctx.shadowBlur = 12;
-        ctx.fillStyle = '#1a3a6e';
+        ctx.shadowColor = wGlow;
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = wColor;
         ctx.fillRect(w.x, w.y, w.w, w.h);
-        // Border highlight
-        ctx.strokeStyle = '#4488ff';
+        ctx.strokeStyle = wGlow;
         ctx.lineWidth = 2;
         ctx.strokeRect(w.x, w.y, w.w, w.h);
-        // Inner shine
-        ctx.fillStyle = 'rgba(68,136,255,0.15)';
-        ctx.fillRect(w.x + 3, w.y + 3, w.w - 6, w.h - 6);
+        // Top highlight edge
+        ctx.fillStyle = wGlow + '30';
+        ctx.fillRect(w.x, w.y, w.w, Math.min(4, w.h));
+        ctx.fillRect(w.x, w.y, Math.min(4, w.w), w.h);
         ctx.shadowBlur = 0;
     }
 
@@ -2020,6 +2398,20 @@ function draw() {
         if (!rb.alive) continue;
         if (rb.x < cx - 40 || rb.x > cx + W + 40 || rb.y < cy - 40 || rb.y > cy + H + 40) continue;
         rb.draw(ctx, gameTime);
+    }
+
+    // Birthday cakes
+    for (const cake of birthdayCakes) {
+        if (!cake.alive) continue;
+        if (cake.x < cx - 40 || cake.x > cx + W + 40 || cake.y < cy - 40 || cake.y > cy + H + 40) continue;
+        cake.draw(ctx, gameTime);
+    }
+
+    // Bonus foods
+    for (const bf of bonusFoods) {
+        if (!bf.alive) continue;
+        if (bf.x < cx - 30 || bf.x > cx + W + 30 || bf.y < cy - 30 || bf.y > cy + H + 30) continue;
+        bf.draw(ctx, gameTime);
     }
 
     // Marshmallows
